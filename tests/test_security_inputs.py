@@ -127,18 +127,14 @@ class HostileInputTests(TestCase):
         self.assertEqual(Application.objects.count(), 1)
 
     def test_resubmission_requires_fresh_enrichment(self):
+        self.company.expenses = 800000
+        self.company.save()
         services.upload(self.app.pk, self.owner, self.app.version, 'income', SimpleUploadedFile('statement.pdf', make_pdf()))
         self.app.refresh_from_db()
         services.submit(self.app.pk, self.owner, self.app.version, True)
         self.app.refresh_from_db()
-        p = example('reduced_amount')
-        p['заявка']['сумма'] = 1500000
-        p['заявка']['срок'] = 24
-        p['обогащение']['кредитная_история']['есть_история'] = False
-        p['обогащение']['кредитная_история']['макс_просрочка_12м'] = 30
-        p['обогащение']['кредитная_история']['активных_кредитов'] = 9
-        p['обогащение']['собственность']['число_владельцев'] = 9
-        p['документ']['средний_приход'] = 150000
+        p = example()
+        p['обогащение']['кредитная_история'].update({'есть_история': False, 'макс_просрочка_12м': 60, 'активных_кредитов': 6})
         app = evaluate_application(self.app.pk, self.staff, self.app.version, p)
         self.assertEqual(app.status, 'review')
         services.decide(app.pk, self.staff, app.version, {'decision': 'info', 'note': 'Уточните финансовые показатели компании.'})
@@ -149,7 +145,7 @@ class HostileInputTests(TestCase):
         services.take_review(app.pk, self.staff, app.version)
         app.refresh_from_db()
         with self.assertRaises(ValidationError):
-            services.decide(app.pk, self.staff, app.version, {'decision': 'counteroffer', 'note': 'Используем старые результаты проверки.', 'amount': Decimal(str(app.scoring['approved_amount'])), 'months': 24, 'rate': Decimal(str(app.scoring['annual_rate']))})
+            services.decide(app.pk, self.staff, app.version, {'decision': 'counteroffer', 'note': 'Используем старые результаты проверки.', 'amount': Decimal('1500000'), 'months': 24, 'rate': Decimal('29')})
         app = evaluate_application(app.pk, self.staff, app.version, example())
         self.assertFalse(app.checks.get('needs_refresh'))
         self.assertEqual(app.status, 'approved')

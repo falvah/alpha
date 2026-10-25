@@ -15,7 +15,7 @@ def example(name="good_mature"):
 
 class ScorecardTests(unittest.TestCase):
     def test_three_supplied_scenarios(self):
-        for name, decision, amount, reason in [("good_mature", "approve", 1500000, "APPROVED"), ("reduced_amount", "approve", 5500000, "AMOUNT_REDUCED"), ("mass_address", "decline", None, "ADDRESS_MASS")]:
+        for name, decision, amount, reason in [("good_mature", "approve", 1500000, "APPROVED"), ("reduced_amount", "approve", 8310000, "APPROVED"), ("mass_address", "decline", None, "ADDRESS_MASS")]:
             with self.subTest(name=name):
                 payload = example(name)
                 result = score_payload(payload)
@@ -30,11 +30,11 @@ class ScorecardTests(unittest.TestCase):
     def test_limit_uses_inflows_not_profit_and_respects_pti(self):
         from credit.domain import payment
         r = score_payload(example("reduced_amount"))
-        self.assertLessEqual(payment(r["approved_amount"], 36, 24), Decimal("900000") * Decimal("0.8") * Decimal("0.3"))
-        self.assertGreater(payment(r["approved_amount"] + 10000, 36, 24), Decimal("900000") * Decimal("0.8") * Decimal("0.3"))
+        self.assertLessEqual(payment(r["approved_amount"], 36, r["annual_rate"]), Decimal("900000") * Decimal("0.8") * Decimal("0.45"))
+        self.assertGreater(payment(r["approved_amount"] + 10000, 36, r["annual_rate"]), Decimal("900000") * Decimal("0.8") * Decimal("0.45"))
 
     def test_all_hard_stops_and_thresholds(self):
-        for key, value, reason in [("адрес_массовый", "да", "ADDRESS_MASS"), ("адрес_недостоверный", True, "ADDRESS_UNRELIABLE"), ("руководитель_дисквалиф.", 1, "DIRECTOR_DISQUALIFIED"), ("руководитель_массовый", "да", "MASS_MANAGEMENT"), ("юрлиц_у_руководителя", 21, "MASS_MANAGEMENT")]:
+        for key, value, reason in [("адрес_массовый", "да", "ADDRESS_MASS"), ("адрес_недостоверный", True, "ADDRESS_UNRELIABLE"), ("руководитель_дисквалиф.", 1, "DIRECTOR_DISQUALIFIED"), ("руководитель_массовый", "да", "DIRECTOR_MASS"), ("юрлиц_у_руководителя", 21, "MASS_MANAGEMENT")]:
             with self.subTest(key=key):
                 p = example()
                 p["обогащение"][key] = value
@@ -74,7 +74,8 @@ class ScorecardTests(unittest.TestCase):
             score_payload(p)
         p = example()
         p["документ"]["месяцев_с_поступлениями"] = 11
-        self.assertIn("BRANCH_MISMATCH", score_payload(p)["reason_codes"])
+        self.assertEqual(score_payload(p)["decision"], "approve")
+        self.assertTrue(any(f["id"] == "months_with_inflows" and f["points"] == 0.35 for f in score_payload(p)["factors"]))
 
     def test_young_annual_income_and_collateral(self):
         p = example()
@@ -82,12 +83,13 @@ class ScorecardTests(unittest.TestCase):
         p["обогащение"]["дата_регистрации"] = "2026-05-22"
         r = score_payload(p)
         self.assertEqual(r["branch"], "young")
-        self.assertEqual(r["approved_amount"], 560000)
-        self.assertIn("AMOUNT_REDUCED", r["flags"])
+        self.assertEqual(r["decision"], "decline")
+        self.assertIn("PD_TOO_HIGH", r["reason_codes"])
         p["документ"] = {"есть_поручительство": False, "стоимость_залога": 2000000, "тип_залога": "недвижимость"}
         r = score_payload(p)
         self.assertEqual(r["approved_amount"], 1400000)
-        self.assertIn("COLLATERAL_SHORTFALL", r["flags"])
+        self.assertEqual(r["decision"], "review")
+        self.assertNotIn("COLLATERAL_SHORTFALL", r["flags"])
 
     def test_english_payload_equivalent(self):
         p = {"application": {"amount": "1 500 000 руб.", "term_months": "24", "legal_form": "ООО", "purpose": "working capital"},
@@ -132,6 +134,8 @@ class ScorecardTests(unittest.TestCase):
         self.assertIsNone(empty["собственность"]["номинальный_владелец"])
 
     def test_version_mismatch_is_visible(self):
-        r = score_payload(example())
-        self.assertEqual(r["card_version"], "project-1.0.0")
+        p = example()
+        p["служебное"]["версия_карты"] = "old-card"
+        r = score_payload(p)
+        self.assertEqual(r["card_version"], "1.0.0")
         self.assertIn("CARD_VERSION_MISMATCH", r["flags"])

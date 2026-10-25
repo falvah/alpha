@@ -38,16 +38,29 @@ def validate_product(request):
     return product
 
 
+DATA_GAPS = {"DOCUMENT_MISSING", "MISSING_REQUIRED_DATA", "CRITICAL_DATA_MISSING", "LOW_DATA_COVERAGE"}
+
+
 def apply_result(app, actor):
-    """Only called inside a transaction, with an already authorized input source."""
+    """Route the original model result without replacing its factors/PD/terms."""
     result = app.scoring
+    app.offer_amount = app.offer_months = app.offer_rate = None
+    note = "; ".join(reason["title"] for reason in result["reasons"])
+    codes = set(result["reason_codes"])
+    data_gap = bool(codes) and codes <= DATA_GAPS
+    manual_reason = app.checks.get("manual_review_reason")
     if app.status == "submitted":
         services.record(app, actor, "Скоринговая проверка выполнена", target="review", notify=False)
-    if result["decision"] == "review":
-        services.record(app, actor, "Нужна ручная проверка", "Показатели находятся в зоне ручного рассмотрения.")
+    if result["decision"] == "review" or data_gap or manual_reason:
+        if data_gap or manual_reason:
+            app.checks["needs_refresh"] = True
+        app.decision_note = manual_reason or note
+        services.record(app, actor, "Заявка передана эксперту", app.decision_note)
         return
-    target = "rejected" if result["decision"] == "decline" else "counteroffer" if "AMOUNT_REDUCED" in result["flags"] else "approved"
-    note = "; ".join(reason["title"] for reason in result["reasons"])
+    target = "rejected" if result["decision"] == "decline" else "counteroffer" if Decimal(str(result["approved_amount"])) < app.amount else "approved"
+    if target != "rejected" and Decimal(str(result["approved_amount"])) < PRODUCTS[app.product]["min"]:
+        target = "rejected"
+        note = "Рассчитанный картой лимит меньше минимальной суммы выбранного продукта."
     if target != "rejected":
         app.offer_amount = Decimal(str(result["approved_amount"]))
         app.offer_months = result["term_months"]
@@ -56,10 +69,9 @@ def apply_result(app, actor):
             note += f". Доступно {app.offer_amount:,.0f} ₽. Подтвердите снижение суммы, чтобы продолжить.".replace(",", " ")
         else:
             note += ". Запрошенная сумма одобрена полностью. Подтвердите условия предложения."
-    else:
-        app.offer_amount = app.offer_months = app.offer_rate = None
     app.decision_note = note
-    services.record(app, actor, services.STATUSES[target], note, target)
+    title = {"approved": "Автоматическое одобрение", "rejected": "Автоматический отказ", "counteroffer": "Автоматическое предложение новых условий"}[target]
+    services.record(app, actor, title, note, target)
 
 
 @transaction.atomic
@@ -75,15 +87,14 @@ def create_seed_application(actor, payload, consent, example_name=None):
     if not all(a.get(key) for key in ("name", "signatory", "address", "inn", "ogrn")) or not validate_identity(a["legal_form"].upper(), a["inn"], a["ogrn"]):
         raise InputDataError("Для создания заявки заполните название, подписанта, адрес и корректные ИНН / ОГРН.")
     digest = hashlib.sha256(json.dumps(payload, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
-    token = uuid.uuid5(uuid.NAMESPACE_URL, f"scorecard:{company.pk}:{digest}")
+    result = score_payload(payload)
+    model_digest = hashlib.sha256(json.dumps(result, sort_keys=True).encode()).hexdigest()
+    token = uuid.uuid5(uuid.NAMESPACE_URL, f"scorecard:{company.pk}:{digest}:{model_digest}")
     existing = company.applications.filter(creation_token=token).first()
     if existing:
         return existing
     if company.applications.count() >= 100:
         raise ValidationError("Достигнут лимит: 100 заявок на компанию.")
-    result = score_payload(payload)
-    if result["approved_amount"] is not None and result["approved_amount"] < PRODUCTS[product]["min"]:
-        raise InputDataError("Расчётная сумма меньше минимума выбранного продукта.")
     display_name = re.sub(r"^(?:ООО|АО|ИП)\s+", "", a["name"], flags=re.IGNORECASE).strip(' «»"')
     app = Application.objects.create(
         company=company, product=product, amount=request.amount, months=request.term_months,
@@ -124,8 +135,6 @@ def evaluate_application(pk, actor, version, payload):
         raise ValidationError("Сумма, срок и ИНН JSON должны совпадать с отправленной заявкой.")
     app.scoring_input = payload
     app.scoring = score_payload(payload)
-    if app.scoring["approved_amount"] is not None and app.scoring["approved_amount"] < PRODUCTS[app.product]["min"]:
-        raise ValidationError("Расчётная сумма меньше минимума выбранного продукта.")
     app.checks = {"enrichment": block(payload, "обогащение", "enrichment"), "simulated": True, "valuation_date": request.valuation_date.isoformat()}
     app.assigned_to = actor
     services.record(app, actor, "Данные скоринговой карты получены", notify=False)

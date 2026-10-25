@@ -5,7 +5,6 @@
 __pycache__
 **/__pycache__
 staticfiles
-доки
 .agents
 .codex
 .aws
@@ -13,3 +12,4 @@ docs
 tests
 .playwright-mcp
 *.png
+.artifacts

@@ -1,7 +1,7 @@
 {% load credit_tags %}
 <section class="card"><p class="eyebrow">РЕЗУЛЬТАТ ПРОВЕРКИ · {{ application.scoring.card_version }}</p>
 {% if application.checks.needs_refresh %}<p class="message warning">Данные заявки изменились. Требуется новый расчёт скоринга перед одобрением.</p>{% endif %}
-<h2>{% if application.scoring.decision == 'decline' %}Финансирование заблокировано{% elif application.scoring.requires_manual_review %}Нужно ручное рассмотрение{% elif 'AMOUNT_REDUCED' in application.scoring.flags %}Нужно снизить сумму{% else %}Запрошенная сумма доступна{% endif %}</h2>
+<h2>{% if application.checks.needs_refresh %}Нужны данные для решения{% elif application.scoring.decision == 'decline' %}Финансирование заблокировано{% elif application.scoring.requires_manual_review %}Нужно ручное рассмотрение{% elif 'AMOUNT_REDUCED' in application.scoring.flags %}Нужно снизить сумму{% else %}Запрошенная сумма доступна{% endif %}</h2>
 {% for reason in application.scoring.reasons %}<p>{{ reason.title }}{% if user.is_staff %} <small class="muted">{{ reason.code }}</small>{% endif %}</p>{% endfor %}
 {% if application.scoring.approved_amount %}<div class="offer-terms"><div><span>Доступная сумма</span><strong>{{ application.scoring.approved_amount|rub }} ₽</strong></div><div><span>Расчётный лимит</span><strong>{{ application.scoring.limit_amount|rub }} ₽</strong></div><div><span>Платёж</span><strong>{{ application.scoring.monthly_payment|rub }} ₽</strong></div></div>{% endif %}
 <p class="small muted">Оценка рассчитана по данным, зафиксированным в заявке.</p>

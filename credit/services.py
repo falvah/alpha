@@ -6,8 +6,8 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.db.models import Sum
 from django.utils import timezone
-from .domain import PRODUCTS, STATUSES, assess, ensure_transition
-from .models import Application, Document, Event, Notification
+from .domain import PRODUCTS, STATUSES, ensure_transition
+from .models import Application, Company, Document, Event, Notification
 
 def check_version(application, version):
     if str(application.version) != str(version):
@@ -37,13 +37,8 @@ def snapshot(company):
     return {key: str(getattr(company, key)) for key in ["kind", "name", "representative", "address", "inn", "ogrn", "business_months", "revenue", "expenses", "existing_payments"]} | {"company_version": str(company.version)}
 
 def calculate_score(app):
-    s = app.company_snapshot
-    if app.scoring_input:
-        # Submitted corrections must be checked against fresh, trusted enrichment.
-        app.checks = app.checks | {"needs_refresh": True}
-        return
-    app.checks = {"registry": app.company.mock_registry, "overdue": app.company.mock_overdue, "simulated": True, "checked_at": timezone.now().isoformat()}
-    app.scoring = assess(app.amount, app.months, app.rate, s["revenue"], s["expenses"], s["existing_payments"], int(s["business_months"]), app.checks["registry"], app.checks["overdue"])
+    from .automatic_decisions import calculate
+    calculate(app)
 
 @transaction.atomic
 def submit(pk, actor, version, consent, company_version=None):
@@ -55,6 +50,7 @@ def submit(pk, actor, version, consent, company_version=None):
         raise ValidationError("Подтвердите согласие на обработку данных и тестовую проверку кредитной истории.")
     if company_version is not None and str(company_version) != str(app.company.version):
         raise ValidationError("Данные компании изменились. Проверьте второй шаг и повторите отправку.")
+    app.company = Company.objects.select_for_update().get(pk=app.company_id)
     from .forms import CompanyForm, FinancingForm
     cf = CompanyForm(snapshot(app.company), instance=app.company)
     ff = FinancingForm({k: getattr(app, k) for k in ["product", "amount", "months", "purpose"]}, instance=app)
@@ -69,7 +65,9 @@ def submit(pk, actor, version, consent, company_version=None):
     app.consent_at = timezone.now()
     app.decision_note = ""
     calculate_score(app)
-    record(app, actor, "Заявка отправлена в банк", "Документы получены. Следующий шаг — рассмотрение сотрудником.", "submitted")
+    record(app, actor, "Заявка отправлена в банк", "Документы получены. Выполняется автоматическая проверка.", "submitted", notify=False)
+    from .automatic_decisions import apply
+    apply(app, actor)
     return app
 
 @transaction.atomic
@@ -115,6 +113,8 @@ def take_review(pk, actor, version):
         raise PermissionDenied
     app = get_locked(pk, actor)
     check_version(app, version)
+    if app.status not in {"submitted", "review"} or app.assigned_to_id not in {None, actor.pk}:
+        raise ValidationError("В работу можно взять только заявку, ожидающую рассмотрения и не назначенную другому эксперту.")
     if app.status == "review" and app.assigned_to_id is None:
         app.assigned_to = actor
         record(app, actor, "Сотрудник назначен на ручную проверку", "Проверяем показатели скоринговой карты.")
@@ -134,7 +134,7 @@ def decide(pk, actor, version, data):
     if decision in {"approved", "counteroffer"}:
         amount = data["amount"] if decision == "counteroffer" else app.amount
         months = data["months"] if decision == "counteroffer" else app.months
-        rate = data["rate"] if decision == "counteroffer" else app.rate
+        rate = data["rate"] if decision == "counteroffer" else Decimal(str(app.scoring.get("annual_rate") or app.rate))
         p = PRODUCTS[app.product]
         if not p["min"] <= amount <= p["max"] or not 1 <= months <= p["months"] or not Decimal("1") <= rate <= Decimal("60"):
             raise ValidationError("Условия не соответствуют ограничениям выбранного продукта.")

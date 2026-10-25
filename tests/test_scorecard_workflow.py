@@ -45,7 +45,7 @@ class ScorecardWorkflowTests(TestCase):
                     schedule = self.client.get(f'/applications/{app.pk}/schedule/')
                     self.assertEqual(schedule.status_code, 200)
                 else:
-                    self.assertContains(response, 'Массовый адрес регистрации')
+                    self.assertContains(response, 'Адрес массовой регистрации')
                     self.assertNotContains(response, 'Принять условия')
                     with self.assertRaises(ValidationError):
                         services.accept(app.pk, self.owner, app.version, True)
@@ -124,11 +124,8 @@ class ScorecardWorkflowTests(TestCase):
                 services.accept(app.pk, self.owner, app.version, True)
 
     def test_manual_review_can_be_claimed_and_resolved(self):
-        payload = example('reduced_amount')
-        payload['обогащение']['кредитная_история']['есть_история'] = False
-        payload['обогащение']['кредитная_история']['макс_просрочка_12м'] = 30
-        payload['обогащение']['кредитная_история']['активных_кредитов'] = 9
-        payload['обогащение']['собственность']['число_владельцев'] = 9
+        payload = example()
+        payload['обогащение']['кредитная_история'].update({'есть_история': False, 'макс_просрочка_12м': 60, 'активных_кредитов': 6})
         app = create_seed_application(self.owner, payload, True)
         self.assertEqual(app.status, 'review')
         self.assertTrue(app.scoring['requires_manual_review'])

@@ -16,7 +16,7 @@ class FinancingForm(StyledFormMixin, forms.ModelForm):
         fields = ["product", "amount", "months", "purpose"]
         labels = {"product": "Кредитный продукт", "amount": "Сумма, ₽", "months": "Срок, месяцев", "purpose": "На что нужны деньги"}
         widgets = {"purpose": forms.Textarea(attrs={"rows": 3, "placeholder": "Закупка товаров к новому сезону"}),
-                   "amount": forms.NumberInput(attrs={"step": "0.01", "min": "100000"}), "months": forms.NumberInput(attrs={"min": 1, "max": 60})}
+                   "amount": forms.NumberInput(attrs={"step": "1000", "min": "100000"}), "months": forms.NumberInput(attrs={"min": 1, "max": 60})}
     def clean(self):
         data = super().clean()
         product = PRODUCTS.get(data.get("product"))
@@ -99,7 +99,7 @@ class DecisionForm(StyledFormMixin, forms.Form):
 
     decision = forms.ChoiceField(label="Решение", choices=[("approved", "Одобрить запрошенные условия"), ("counteroffer", "Предложить другие условия"), ("info", "Запросить уточнения"), ("rejected", "Отказать")])
     note = forms.CharField(label="Сообщение предпринимателю", min_length=10, max_length=2000, widget=forms.Textarea(attrs={"rows": 3, "placeholder": "Объясните решение и следующий шаг простыми словами"}))
-    amount = forms.DecimalField(label="Предлагаемая сумма, ₽", required=False, min_value=100000, max_value=30000000, max_digits=12, decimal_places=2)
+    amount = forms.DecimalField(label="Предлагаемая сумма, ₽", required=False, min_value=100000, max_value=30000000, max_digits=12, decimal_places=2, widget=forms.NumberInput(attrs={"step": "1000"}))
     months = forms.IntegerField(label="Предлагаемый срок, мес.", required=False, min_value=1, max_value=60)
     rate = forms.DecimalField(label="Предлагаемая ставка, %", required=False, min_value=1, max_value=60, decimal_places=2)
     def clean(self):

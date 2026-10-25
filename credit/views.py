@@ -177,8 +177,8 @@ def edit_application(request, pk, step):
                         messages.success(request, "Документ добавлен")
                         return redirect("application_edit", pk=pk, step=3)
                 elif request.POST.get("action") == "submit":
-                    services.submit(pk, request.user, request.POST.get("version"), request.POST.get("consent") == "on", request.POST.get("company_version", ""))
-                    messages.success(request, "Заявка отправлена. О ходе рассмотрения сообщим в кабинете.")
+                    result = services.submit(pk, request.user, request.POST.get("version"), request.POST.get("consent") == "on", request.POST.get("company_version", ""))
+                    messages.success(request, f"{result.get_status_display()}. {result.decision_note}")
                     return redirect("application_detail", pk=pk)
                 else:
                     return HttpResponse("Неизвестное действие. Обновите страницу и повторите запрос.", status=400)
@@ -318,7 +318,10 @@ def help_page(request):
 @require_GET
 def staff_queue(request):
     qs = visible(request.user)
-    counts = {k: qs.filter(status=k).count() for k in ["submitted", "review", "info", "funded"]}
+    counts = {k: qs.filter(status=k).count() for k in ["submitted", "review", "info", "funded", "approved", "rejected"]}
+    queue_view = "history" if request.GET.get("view") == "history" else "review"
+    if queue_view == "review":
+        qs = qs.filter(status__in=["submitted", "review", "info"])
     query = request.GET.get("q", "")[:100].strip()
     status = request.GET.get("status", "")
     if query:
@@ -327,7 +330,7 @@ def staff_queue(request):
         qs = qs.filter(status=status)
     if request.GET.get("mine") == "1":
         qs = qs.filter(assigned_to=request.user)
-    return render(request, "credit/staff.html", {"page": Paginator(qs.order_by("created_at"), 15).get_page(request.GET.get("page")), "counts": counts, "query": query, "selected_status": status, "statuses": STATUSES})
+    return render(request, "credit/staff.html", {"page": Paginator(qs.order_by("-updated_at", "pk"), 15).get_page(request.GET.get("page")), "counts": counts, "query": query, "selected_status": status, "statuses": STATUSES if queue_view == "history" else {k: STATUSES[k] for k in ["submitted", "review", "info"]}, "queue_view": queue_view})
 
 @staff_required
 @require_GET

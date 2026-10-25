@@ -38,6 +38,9 @@ class Command(BaseCommand):
         for index, (login, first, last, name, age, revenue, expenses, debt, overdue, product, amount, status) in enumerate(profiles):
             owner = user(login, first, last)
             company, created = Company.objects.get_or_create(owner=owner, defaults={"name": name, "representative": f"{last} {first} Александрович" if first in {"Александр", "Иван"} else f"{last} {first} Александровна", "address": f"Россия, г. Москва, ул. Учебная, д. {index + 1}", "inn": f"99000000{index + 1:02d}", "ogrn": f"19900000000{index + 1:02d}", "business_months": age, "revenue": revenue, "expenses": expenses, "existing_payments": debt, "mock_overdue": overdue})
+            if not company.trusted_scoring_data:
+                from credit.demo_scoring import seed_company_source
+                seed_company_source(company, grey=login == "client_growth")
             if not created:
                 continue
             app = Application.objects.create(company=company, product=product, amount=amount, months=24, purpose="Закупка оборудования и товаров для развития бизнеса", rate="22.5" if product == "growth" else "24.0")
@@ -48,10 +51,10 @@ class Command(BaseCommand):
             app.refresh_from_db()
             services.submit(app.pk, owner, app.version, True)
             app.refresh_from_db()
-            if status in {"review", "info"}:
+            if app.status == "review" and status in {"review", "info"}:
                 services.take_review(app.pk, expert, app.version)
                 app.refresh_from_db()
-            if status == "info":
+            if status == "info" and app.status == "review":
                 services.decide(app.pk, expert, app.version, {"decision": "info", "note": "Уточните средние ежемесячные расходы с учётом аренды нового помещения. Обновите данные на втором шаге и отправьте заявку повторно."})
             if login == "entrepreneur":
                 draft = Application.objects.create(company=company, product="growth", amount=3000000, months=36, purpose="Открытие новой точки", rate="22.5")

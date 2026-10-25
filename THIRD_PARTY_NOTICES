@@ -19,8 +19,8 @@ Visuals:
 - Bank name, stylistic reference and red palette are used in a hackathon project. No claim of bank affiliation, production authorization, or ownership of bank trademarks is made.
 
 Source materials:
-- Three PDFs and ц.txt provided by the user in доки/. The challenge identifies Changellenge and АО «Альфа-Банк» as its creators. Rights remain with the respective holders.
-- docs/source/ contains text extracts of user-provided PDFs for requirements traceability.
+- Three PDFs and business-financing-background.txt provided by the user; now stored in docs/reference/briefs/. The challenge identifies Changellenge and АО «Альфа-Банк» as its creators. Rights remain with the respective holders.
+- docs/reference/text/ contains text extracts of user-provided PDFs for requirements traceability.
 
 Synthetic data and simulated integrations:
 - Companies, names, identifiers, addresses, financial indicators and demo documents are synthetic; any coincidence is unintentional. No real customer dataset was used.

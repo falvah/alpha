@@ -5,10 +5,11 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
-from . import services
-from .pdf import make_pdf
-from .forms import CompanyForm, FinancingForm
-from .models import Application, Company, Document, Notification
+from credit import services
+from credit.pdf import make_pdf
+from credit.forms import CompanyForm, FinancingForm
+from credit.models import Application, Company, Document, Notification
+from credit.demo_scoring import seed_company_source
 
 @override_settings(STORAGES={'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'}, 'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'}}, PASSWORD_HASHERS=['django.contrib.auth.hashers.MD5PasswordHasher'])
 class CabinetTests(TestCase):
@@ -21,6 +22,7 @@ class CabinetTests(TestCase):
         self.company=Company.objects.create(owner=self.owner,name='Листва',kind='ООО',representative='Соколов Александр Иванович',address='Россия, г. Москва, ул. Учебная, д. 1',inn='9900000001',ogrn='1990000000001',business_months=36,revenue=2400000,expenses=1600000,existing_payments=0)
         Company.objects.create(owner=self.other,name='Другая',representative='Петров Иван',address='Россия, г. Москва, ул. Учебная, д. 2',inn='9900000002',ogrn='1990000000002')
         self.app=Application.objects.create(company=self.company,product='working',amount=1500000,months=24,purpose='Закупка товаров',rate=24)
+        seed_company_source(self.company)
         self.client.force_login(self.owner)
     def upload(self, kind='income'):
         services.upload(self.app.pk,self.owner,self.app.version,kind,SimpleUploadedFile('income.pdf',make_pdf(),content_type='application/pdf'))
@@ -30,6 +32,7 @@ class CabinetTests(TestCase):
         services.submit(self.app.pk,self.owner,self.app.version,True)
         self.app.refresh_from_db()
     def review(self):
+        seed_company_source(self.company, grey=True)
         self.submit()
         services.take_review(self.app.pk,self.staff,self.app.version)
         self.app.refresh_from_db()
@@ -61,7 +64,7 @@ class CabinetTests(TestCase):
         services.upload(self.app.pk,self.owner,self.app.version,'guarantee',SimpleUploadedFile('guarantee.pdf',make_pdf('GUARANTEE')))
         self.app.refresh_from_db()
         services.submit(self.app.pk,self.owner,self.app.version,True)
-        self.app.refresh_from_db(); self.assertEqual(self.app.status,'submitted')
+        self.app.refresh_from_db(); self.assertEqual(self.app.status,'review')
     def test_approved_full_path_and_idempotent_acceptance(self):
         self.review(); self.decide()
         version=self.app.version
@@ -76,9 +79,9 @@ class CabinetTests(TestCase):
         self.review(); self.decide('info')
         self.assertTrue(self.app.editable)
         services.submit(self.app.pk,self.owner,self.app.version,True)
-        self.app.refresh_from_db(); self.assertEqual(self.app.status,'submitted')
+        self.app.refresh_from_db(); self.assertEqual(self.app.status,'review')
     def test_counteroffer_terms_and_schedule(self):
-        self.review(); self.decide('counteroffer',amount=Decimal(800000),months=36,rate=Decimal('25.5'))
+        self.review(); self.decide('counteroffer',amount=Decimal(800000),months=24,rate=Decimal('29.0'))
         self.assertEqual(self.app.offer_amount,800000)
         response=self.client.get(reverse('application_detail',args=[self.app.pk]))
         self.assertEqual(response.status_code,200)
@@ -91,7 +94,7 @@ class CabinetTests(TestCase):
     def test_stale_version_cannot_change_status(self):
         self.submit()
         with self.assertRaises(ValidationError): services.take_review(self.app.pk,self.staff,1)
-        self.app.refresh_from_db(); self.assertEqual(self.app.status,'submitted')
+        self.app.refresh_from_db(); self.assertEqual(self.app.status,'approved')
     def test_terminal_status_cannot_change(self):
         self.review(); self.decide('rejected')
         with self.assertRaises(ValidationError): services.accept(self.app.pk,self.owner,self.app.version,True)
@@ -180,13 +183,8 @@ class CabinetTests(TestCase):
         self.assertEqual(response.status_code,302)
         app.refresh_from_db()
         response=self.client.post(reverse('application_edit',args=[app.pk,3]),{'action':'submit','version':app.version,'consent':'on','company_version':app.company.version})
-        app.refresh_from_db();self.assertEqual(app.status,'submitted')
-        self.client.force_login(self.staff)
-        self.client.post(reverse('application_action',args=[app.pk,'review']),{'version':app.version})
-        app.refresh_from_db();self.assertEqual(app.status,'review')
-        self.client.post(reverse('application_action',args=[app.pk,'decide']),{'version':app.version,'decision':'approved','note':'Данные проверены, кредит одобрен.'})
         app.refresh_from_db();self.assertEqual(app.status,'approved')
-        self.client.force_login(self.owner)
+        self.assertIsNone(app.assigned_to_id)
         response=self.client.post(reverse('application_action',args=[app.pk,'accept']),{'version':app.version,'confirm':'on'},follow=True)
         self.assertEqual(response.status_code,200)
         app.refresh_from_db();self.assertEqual(app.status,'funded')

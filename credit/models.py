@@ -16,6 +16,7 @@ class Company(models.Model):
     revenue = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     expenses = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     existing_payments = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    trusted_scoring_data = models.JSONField(default=dict, blank=True)
     mock_registry = models.CharField(max_length=16, default="active")
     mock_overdue = models.BooleanField(default=False)
     def __str__(self):

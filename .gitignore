@@ -20,3 +20,6 @@ htmlcov/
 *.log
 *.pid
 *.sock
+
+# Disposable local verification output
+.artifacts/

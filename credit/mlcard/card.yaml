@@ -1,0 +1,463 @@
+# Экспертная скоринговая карта кредитного риска МСБ.
+# Баллы указаны в единицах логита: положительный балл повышает риск,
+# отрицательный — снижает. PD = sigmoid(intercept + сумма баллов).
+# Все границы бинов: [min, max), верхняя граница не включается.
+# Карта — черновик для калибровки риск-подразделением: веса и пороги
+# обязательно пересчитать на исторических дефолтах.
+
+version: "1.0.0"
+name: "Экспертная карта кредитного риска МСБ"
+updated: "2026-10-22"
+
+model:
+  intercept: -2.50
+
+policy:
+  currency: "RUB"
+  min_amount: 100000
+  max_amount: 30000000
+  min_term_months: 3
+  max_term_months: 60
+
+  # PD — оценка вероятности дефолта за 12 месяцев.
+  max_pd: 0.12          # выше — отказ (review_pd: null — серой зоны нет)
+  review_pd: null       # например 0.20, если нужна ручная доработка
+  min_coverage: 0.65    # минимальная доля заполненных факторов (по весам)
+
+  # Без этих проверок одобрение невозможно: "пусто" — это не "нет".
+  # Список можно сузить, если проверки выполняются отдельным процессом.
+  critical_features:
+    - address_mass
+    - address_unreliable
+    - director_disqualified
+    - director_mass
+    - nominal_owner
+
+  # Доступность обслуживания долга: платёж / доход.
+  pti_limit: 0.45
+  inflow_haircut: 0.80  # поступления — не прибыль, консервативный дисконт
+
+  # Ставка = базовая + премия за PD − дисконт за залог.
+  base_rate: 20.0
+  reference_rate: 24.0  # для проверки PTI до расчёта финальной ставки
+  min_rate: 15.0
+  max_rate: 35.0
+  rate_rounding: 0.5
+  amount_rounding: 10000
+
+  rate_grid:
+    - {max_pd: 0.02, premium: 1.5}
+    - {max_pd: 0.04, premium: 2.5}
+    - {max_pd: 0.06, premium: 3.5}
+    - {max_pd: 0.08, premium: 4.5}
+    - {max_pd: 0.10, premium: 5.5}
+    - {max_pd: 0.12, premium: 6.5}
+    - {max_pd: 0.20, premium: 9.0}
+    - {max_pd: 1.00, premium: 14.0}
+
+  collateral_ltv:
+    недвижимость: 0.70
+    транспорт: 0.50
+    оборудование: 0.40
+    прочее: 0.25
+  collateral_ltv_default: 0.25
+
+  collateral_discount:
+    недвижимость: 1.0
+    транспорт: 0.75
+    оборудование: 0.5
+    прочее: 0.25
+
+# Без этих признаков решение не принимается (отказ MISSING_REQUIRED_DATA).
+required_features:
+  all:
+    - months_since_registration
+    - has_credit_history
+  mature:
+    - months_with_inflows
+    - avg_monthly_inflow
+  young: []
+
+# Жёсткие стоп-факторы: срабатывание = отказ независимо от баллов.
+hard_stops:
+  - id: address_mass
+    code: ADDRESS_MASS
+    title: "Адрес массовой регистрации"
+    when: {field: address_mass, op: eq, value: true}
+
+  - id: address_unreliable
+    code: ADDRESS_UNRELIABLE
+    title: "Недостоверный адрес"
+    when: {field: address_unreliable, op: eq, value: true}
+
+  - id: director_disqualified
+    code: DIRECTOR_DISQUALIFIED
+    title: "Дисквалифицированный руководитель"
+    when: {field: director_disqualified, op: eq, value: true}
+
+  - id: director_mass
+    code: DIRECTOR_MASS
+    title: "Массовый руководитель"
+    when: {field: director_mass, op: eq, value: true}
+
+  - id: nominal_owner
+    code: NOMINAL_OWNER
+    title: "Номинальный владелец"
+    when: {field: nominal_owner, op: eq, value: true}
+
+  - id: critical_overdue
+    code: CRITICAL_OVERDUE
+    title: "Просрочка более 90 дней за 12 месяцев"
+    when: {field: max_overdue_12m, op: gt, value: 90}
+
+  - id: mass_management
+    code: MASS_MANAGEMENT
+    title: "Более 20 юрлиц у руководителя"
+    when: {field: companies_per_director, op: gt, value: 20}
+
+  - id: no_inflow
+    code: NO_INFLOW
+    title: "Нулевые поступления по счёту"
+    when:
+      all:
+        - {field: branch, op: eq, value: mature}
+        - {field: avg_monthly_inflow, op: lte, value: 0}
+
+  - id: young_unsecured
+    code: YOUNG_UNSECURED
+    title: "Молодая компания без поручительства и достаточного залога"
+    when:
+      all:
+        - {field: branch, op: eq, value: young}
+        - {field: guarantee_present, op: ne, value: true}
+        - any:
+            - {field: collateral_coverage, op: is_null}
+            - {field: collateral_coverage, op: lt, value: 1.0}
+
+factors:
+  - id: reg_age
+    title: "Возраст с даты регистрации"
+    source: months_since_registration
+    kind: range
+    applies_to: all
+    weight: 10
+    missing_points: 0.25
+    bins:
+      - {max: 6, points: 1.10, label: "< 6 мес"}
+      - {min: 6, max: 12, points: 0.55, label: "6–11 мес"}
+      - {min: 12, max: 24, points: 0.25, label: "12–23 мес"}
+      - {min: 24, max: 36, points: 0.00, label: "2–3 года"}
+      - {min: 36, max: 61, points: -0.10, label: "3–5 лет"}
+      - {min: 61, points: -0.20, label: "> 5 лет"}
+
+  - id: address_mass
+    title: "Адрес массовой регистрации"
+    source: address_mass
+    kind: tri
+    applies_to: all
+    weight: 8
+    missing_points: 0.15
+    yes_points: 2.50
+    no_points: 0.0
+
+  - id: address_unreliable
+    title: "Недостоверный адрес"
+    source: address_unreliable
+    kind: tri
+    applies_to: all
+    weight: 8
+    missing_points: 0.15
+    yes_points: 2.50
+    no_points: 0.0
+
+  - id: director_disqualified
+    title: "Дисквалификация руководителя"
+    source: director_disqualified
+    kind: tri
+    applies_to: all
+    weight: 8
+    missing_points: 0.15
+    yes_points: 3.00
+    no_points: 0.0
+
+  - id: director_mass
+    title: "Массовость руководителя"
+    source: director_mass
+    kind: tri
+    applies_to: all
+    weight: 8
+    missing_points: 0.15
+    yes_points: 2.50
+    no_points: 0.0
+
+  - id: companies_per_director
+    title: "Юрлиц у руководителя"
+    source: companies_per_director
+    kind: range
+    applies_to: all
+    weight: 5
+    missing_points: 0.10
+    bins:
+      - {max: 1, points: -0.05, label: "0"}
+      - {min: 1, max: 4, points: 0.00, label: "1–3"}
+      - {min: 4, max: 6, points: 0.20, label: "4–5"}
+      - {min: 6, max: 11, points: 0.45, label: "6–10"}
+      - {min: 11, max: 21, points: 0.80, label: "11–20"}
+      - {min: 21, points: 1.20, label: "> 20"}
+
+  - id: has_credit_history
+    title: "Наличие кредитной истории"
+    source: has_credit_history
+    kind: tri
+    applies_to: all
+    weight: 8
+    missing_points: 0.30
+    yes_points: -0.15
+    no_points: 0.50
+
+  - id: max_overdue_12m
+    title: "Максимальная просрочка за 12 мес, дней"
+    source: max_overdue_12m
+    kind: range
+    applies_to: all
+    weight: 10
+    missing_points: 0.15
+    bins:
+      - {max: 1, points: -0.20, label: "0"}
+      - {min: 1, max: 31, points: 0.15, label: "1–30"}
+      - {min: 31, max: 61, points: 0.55, label: "31–60"}
+      - {min: 61, max: 91, points: 0.95, label: "61–90"}
+      - {min: 91, max: 121, points: 1.40, label: "91–120"}
+      - {min: 121, points: 1.90, label: "> 120"}
+
+  - id: active_loans
+    title: "Активных кредитов"
+    source: active_loans
+    kind: range
+    applies_to: all
+    weight: 6
+    missing_points: 0.10
+    bins:
+      - {max: 1, points: -0.10, label: "0"}
+      - {min: 1, max: 3, points: -0.03, label: "1–2"}
+      - {min: 3, max: 5, points: 0.10, label: "3–4"}
+      - {min: 5, max: 7, points: 0.30, label: "5–6"}
+      - {min: 7, max: 11, points: 0.60, label: "7–10"}
+      - {min: 11, points: 1.00, label: "> 10"}
+
+  - id: owners_count
+    title: "Число владельцев"
+    source: owners_count
+    kind: range
+    applies_to: all
+    weight: 4
+    missing_points: 0.05
+    bins:
+      - {max: 1, points: -0.10, label: "0"}
+      - {min: 1, max: 2, points: -0.10, label: "1"}
+      - {min: 2, max: 4, points: 0.00, label: "2–3"}
+      - {min: 4, max: 8, points: 0.20, label: "4–7"}
+      - {min: 8, max: 16, points: 0.45, label: "8–15"}
+      - {min: 16, points: 0.80, label: "> 15"}
+
+  - id: nominal_owner
+    title: "Номинальный владелец"
+    source: nominal_owner
+    kind: tri
+    applies_to: all
+    weight: 6
+    missing_points: 0.05
+    yes_points: 3.00
+    no_points: 0.0
+
+  - id: related_parties
+    title: "Связанные стороны"
+    source: related_parties
+    kind: range
+    applies_to: all
+    weight: 5
+    missing_points: 0.15
+    bins:
+      - {max: 2, points: -0.10, label: "0–1"}
+      - {min: 2, max: 6, points: 0.00, label: "2–5"}
+      - {min: 6, max: 11, points: 0.25, label: "6–10"}
+      - {min: 11, max: 21, points: 0.50, label: "11–20"}
+      - {min: 21, points: 0.90, label: "> 20"}
+
+  # ---- Ветка ≥ 12 месяцев ------------------------------------------------
+  - id: months_with_inflows
+    title: "Месяцев с поступлениями"
+    source: months_with_inflows
+    kind: range
+    applies_to: mature
+    weight: 6
+    missing_points: 0.20
+    bins:
+      - {max: 6, points: 0.70, label: "0–5"}
+      - {min: 6, max: 12, points: 0.35, label: "6–11"}
+      - {min: 12, max: 18, points: 0.00, label: "12–17"}
+      - {min: 18, max: 25, points: -0.10, label: "18–24"}
+      - {min: 25, points: -0.20, label: "> 24"}
+
+  - id: inflow_variability
+    title: "Вариативность поступлений"
+    source: inflow_variability
+    kind: range
+    applies_to: mature
+    weight: 5
+    missing_points: 0.20
+    bins:
+      - {max: 0.15, points: -0.25, label: "≤ 0,15"}
+      - {min: 0.15, max: 0.30, points: -0.10, label: "0,15–0,30"}
+      - {min: 0.30, max: 0.45, points: 0.05, label: "0,30–0,45"}
+      - {min: 0.45, max: 0.60, points: 0.25, label: "0,45–0,60"}
+      - {min: 0.60, max: 0.80, points: 0.50, label: "0,60–0,80"}
+      - {min: 0.80, points: 0.85, label: "> 0,80"}
+
+  - id: pti
+    title: "Платёж / доход"
+    source: pti
+    kind: range
+    applies_to: mature
+    weight: 6
+    missing_points: 0.40
+    bins:
+      - {max: 0.15, points: -0.30, label: "≤ 0,15"}
+      - {min: 0.15, max: 0.30, points: -0.12, label: "0,15–0,30"}
+      - {min: 0.30, max: 0.45, points: 0.12, label: "0,30–0,45"}
+      - {min: 0.45, max: 0.60, points: 0.45, label: "0,45–0,60"}
+      - {min: 0.60, points: 0.85, label: "> 0,60"}
+
+  # ---- Ветка < 12 месяцев ------------------------------------------------
+  - id: guarantee_present
+    title: "Поручительство"
+    source: guarantee_present
+    kind: tri
+    applies_to: young
+    weight: 6
+    missing_points: 0.25
+    yes_points: -0.20
+    no_points: 0.45
+
+  - id: guarantee_coverage
+    title: "Доход поручителя / сумма кредита"
+    source: guarantee_coverage
+    kind: range
+    applies_to: young
+    weight: 5
+    missing_points: 0.15
+    bins:
+      - {max: 0.4, points: 0.60, label: "< 0,4"}
+      - {min: 0.4, max: 0.8, points: 0.25, label: "0,4–0,8"}
+      - {min: 0.8, max: 1.5, points: -0.20, label: "0,8–1,5"}
+      - {min: 1.5, points: -0.40, label: "≥ 1,5"}
+
+  - id: collateral_coverage
+    title: "Стоимость залога / сумма кредита"
+    source: collateral_coverage
+    kind: range
+    applies_to: young
+    weight: 6
+    missing_points: 0.30
+    bins:
+      - {max: 0.7, points: 0.60, label: "< 0,7"}
+      - {min: 0.7, max: 1.0, points: 0.20, label: "0,7–1,0"}
+      - {min: 1.0, max: 1.5, points: -0.20, label: "1,0–1,5"}
+      - {min: 1.5, max: 2.0, points: -0.35, label: "1,5–2,0"}
+      - {min: 2.0, points: -0.50, label: "≥ 2,0"}
+
+  - id: collateral_type
+    title: "Тип залога"
+    source: collateral_type
+    kind: category
+    applies_to: young
+    weight: 2
+    missing_points: 0.10
+    categories:
+      недвижимость: -0.15
+      оборудование: -0.05
+      транспорт: 0.00
+      прочее: 0.20
+    default_points: 0.20
+
+  - id: guarantor_pti
+    title: "Платёж / доход поручителя"
+    source: guarantor_pti
+    kind: range
+    applies_to: young
+    weight: 5
+    missing_points: 0.15
+    bins:
+      - {max: 0.15, points: -0.25, label: "≤ 0,15"}
+      - {min: 0.15, max: 0.30, points: -0.10, label: "0,15–0,30"}
+      - {min: 0.30, max: 0.45, points: 0.10, label: "0,30–0,45"}
+      - {min: 0.45, max: 0.60, points: 0.35, label: "0,45–0,60"}
+      - {min: 0.60, points: 0.70, label: "> 0,60"}
+
+  # ---- Общие факторы ------------------------------------------------------
+  - id: term
+    title: "Срок кредита"
+    source: term_months
+    kind: range
+    applies_to: all
+    weight: 2
+    missing_points: 0.00
+    bins:
+      - {max: 13, points: -0.10, label: "3–12 мес"}
+      - {min: 13, max: 25, points: -0.03, label: "13–24 мес"}
+      - {min: 25, max: 37, points: 0.00, label: "25–36 мес"}
+      - {min: 37, max: 49, points: 0.15, label: "37–48 мес"}
+      - {min: 49, points: 0.30, label: "49–60 мес"}
+
+  - id: okved_section
+    title: "Отрасль (ОКВЭД)"
+    source: okved_section
+    kind: okved
+    applies_to: all
+    weight: 2
+    missing_points: 0.10
+    default_points: 0.10
+    sections:
+      - {min: 1, max: 4, points: 0.05, label: "Сельское хозяйство"}
+      - {min: 5, max: 10, points: 0.15, label: "Добыча"}
+      - {min: 11, max: 34, points: 0.00, label: "Обрабатывающая промышленность"}
+      - {min: 35, max: 40, points: 0.05, label: "Энергетика и ЖКХ"}
+      - {min: 41, max: 44, points: 0.15, label: "Строительство"}
+      - {min: 45, max: 48, points: 0.00, label: "Торговля"}
+      - {min: 49, max: 54, points: 0.10, label: "Транспорт и логистика"}
+      - {min: 55, max: 57, points: 0.20, label: "Гостиницы и общепит"}
+      - {min: 58, max: 63, points: -0.05, label: "ИТ и связь"}
+      - {min: 64, max: 67, points: 0.30, label: "Финансы и страхование"}
+      - {min: 68, max: 68, points: 0.15, label: "Недвижимость"}
+      - {min: 69, max: 76, points: -0.05, label: "Профессиональные услуги"}
+      - {min: 77, max: 82, points: 0.10, label: "Административные услуги"}
+      - {min: 85, max: 96, points: 0.05, label: "Образование, здравоохранение, услуги"}
+      - {min: 97, max: 99, points: 0.15, label: "Прочее"}
+
+  - id: purpose
+    title: "Цель кредита"
+    source: purpose
+    kind: category
+    applies_to: all
+    weight: 1
+    missing_points: 0.05
+    categories:
+      working_capital: -0.03
+      equipment: -0.05
+      refinancing: 0.12
+      investment: 0.15
+      other: 0.08
+    default_points: 0.08
+
+  - id: legal_form
+    title: "Организационно-правовая форма"
+    source: legal_form
+    kind: category
+    applies_to: all
+    weight: 1
+    missing_points: 0.05
+    categories:
+      ооо: 0.00
+      ао: -0.03
+      ип: 0.10
+    default_points: 0.10

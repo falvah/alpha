@@ -1,6 +1,6 @@
 from decimal import Decimal
 import unittest
-from credit.domain import PRODUCTS, TRANSITIONS, assess, ensure_transition, payment, schedule, validate_identity
+from credit.domain import PRODUCTS, TRANSITIONS, ensure_transition, payment, schedule, validate_identity
 
 class CreditMathTests(unittest.TestCase):
     def test_zero_interest(self):
@@ -25,34 +25,6 @@ class CreditMathTests(unittest.TestCase):
         short=sum(r['interest'] for r in schedule(1000000,12,24))
         long=sum(r['interest'] for r in schedule(1000000,36,24))
         self.assertGreater(long,short)
-
-class RiskTests(unittest.TestCase):
-    def score(self, **kwargs):
-        data=dict(amount=1500000,months=24,rate=24,revenue=2400000,expenses=1600000,existing_payments=0,business_months=36)
-        return assess(**(data|kwargs))
-    def test_stable_company(self):
-        result=self.score()
-        self.assertEqual(result['level'],'low')
-        self.assertEqual(result['recommendation'],'Рекомендуется одобрение')
-        self.assertEqual(result['score'],100)
-    def test_insufficient_cash_explained(self):
-        result=self.score(expenses=2399000)
-        self.assertLess(result['score'],70)
-        self.assertTrue(any(f['points']<0 for f in result['factors']))
-    def test_registry_block_overrides_score(self):
-        self.assertEqual(self.score(registry='inactive')['recommendation'],'Рекомендуется отказ')
-    def test_overdue_blocks_recommendation(self):
-        self.assertEqual(self.score(overdue=True)['recommendation'],'Рекомендуется отказ')
-    def test_other_debt_reduces_score(self):
-        self.assertLess(self.score(existing_payments=790000)['score'],self.score()['score'])
-    def test_young_company_explanation(self):
-        self.assertTrue(any(f['points']==-10 for f in self.score(business_months=5)['factors']))
-    def test_deterministic_and_not_a_decision(self):
-        self.assertEqual(self.score(),self.score())
-        self.assertNotIn('status',self.score())
-    def test_score_is_bounded(self):
-        result=self.score(expenses=9000000,overdue=True,registry='inactive',business_months=1)
-        self.assertEqual(result['score'],0)
 
 class WorkflowTests(unittest.TestCase):
     def test_full_path(self):

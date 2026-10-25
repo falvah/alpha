@@ -134,7 +134,7 @@ class AdversarialAuditTests(TestCase):
         result = self.client.post("/profile/", services.snapshot(self.company) | {"name": "Совсем другое название"})
         self.assertEqual(result.status_code, 302)
         self.client.force_login(self.staff)
-        self.assertContains(self.client.get("/bank/", {"q": old_name}), self.app.reference)
+        self.assertContains(self.client.get("/bank/", {"q": old_name, "view": "history"}), self.app.reference)
 
     def test_a09_calculator_uses_same_precision_as_application_form(self):
         self.assertEqual(self.client.get("/api/v1/calculator/", {

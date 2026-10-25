@@ -80,7 +80,7 @@ def run(base, access):
     check('customer cannot submit scoring', owner.request('/api/v1/scorecard/', raw='{}')[0], 403)
     check('removed self-approval endpoint', owner.request('/scenarios/', data={'consent': 'on', 'payload': '{}'})[0], 404)
     payloads = Path(__file__).resolve().parents[1] / 'fixtures/scorecard'
-    for name, decision, amount in [('good_mature', 'approve', 1500000), ('reduced_amount', 'approve', 5500000), ('mass_address', 'decline', None)]:
+    for name, decision, amount in [('good_mature', 'approve', 1500000), ('reduced_amount', 'approve', 8310000), ('mass_address', 'decline', None)]:
         status, body, _ = staff.request('/api/v1/scorecard/', raw=(payloads / f'{name}.json').read_text())
         check(name + ' HTTP', status, 200)
         result = json.loads(body)

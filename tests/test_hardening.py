@@ -53,7 +53,7 @@ class HardeningTests(TestCase):
         self.client.post(f'/applications/{self.app.pk}/edit/3/', {
             'action':'submit', 'consent':'on', 'version':self.app.version, 'company_version':self.company.version})
         self.app.refresh_from_db()
-        self.assertEqual(self.app.status, 'submitted')
+        self.assertEqual(self.app.status, 'review')
 
     def test_missing_company_version_cannot_submit(self):
         self.prepared()
@@ -69,7 +69,7 @@ class HardeningTests(TestCase):
         services.cancel(self.app.pk, self.owner, self.app.version)
         self.client.force_login(self.staff)
         self.assertEqual(self.client.get(f'/applications/{self.app.pk}/').status_code, 200)
-        self.assertContains(self.client.get('/bank/'), self.app.reference)
+        self.assertContains(self.client.get('/bank/?view=history'), self.app.reference)
 
     def test_distinct_forms_with_identical_terms_create_independent_drafts(self):
         data = {'product':'working','amount':'1500000','months':'24','purpose':'Закупка товаров'}
