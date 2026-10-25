@@ -76,4 +76,3 @@ Cookie: sessionid={{session}}; csrftoken={{csrfCookie}}
 X-CSRFToken: {{csrfToken}}
 
 < ../fixtures/scorecard/good_mature.json
-
