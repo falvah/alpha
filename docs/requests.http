@@ -1,0 +1,79 @@
+# HTTP-коллекция для локального демо. Пароли берите из .data/access.txt.
+# Укажите session cookie и CSRF-token, полученные из настоящей формы.
+# Не сохраняйте заполненные секреты в Git.
+@base = http://localhost:8000
+@session = REPLACE_WITH_SESSION_COOKIE
+@csrfCookie = REPLACE_WITH_CSRF_COOKIE
+@csrfToken = REPLACE_WITH_FORM_TOKEN
+@appId = REPLACE_WITH_APPLICATION_UUID
+@version = 1
+@companyVersion = 1
+
+### Health
+GET {{base}}/health/
+
+### Страница входа: CSRF-токен находится в HTML, cookie — в Set-Cookie
+GET {{base}}/login/
+
+### Каталог
+GET {{base}}/api/v1/products/
+Cookie: sessionid={{session}}
+
+### Калькулятор
+GET {{base}}/api/v1/calculator/?product=working&amount=1500000&months=24
+Cookie: sessionid={{session}}
+
+### Свои заявки / очередь сотрудника
+GET {{base}}/api/v1/applications/?page=1
+Cookie: sessionid={{session}}
+
+### Состояние заявки
+GET {{base}}/api/v1/applications/{{appId}}/
+Cookie: sessionid={{session}}
+
+### Новый черновик, только предприниматель
+POST {{base}}/applications/new/
+Content-Type: application/x-www-form-urlencoded
+Cookie: sessionid={{session}}; csrftoken={{csrfCookie}}
+
+csrfmiddlewaretoken={{csrfToken}}&product=working&amount=1500000&months=24&purpose=Закупка%20товаров
+
+### Отправка после заполнения сведений и загрузки документа
+POST {{base}}/applications/{{appId}}/edit/3/
+Content-Type: application/x-www-form-urlencoded
+Cookie: sessionid={{session}}; csrftoken={{csrfCookie}}
+
+csrfmiddlewaretoken={{csrfToken}}&version={{version}}&action=submit&consent=on&company_version={{companyVersion}}
+
+### Взять в работу, только staff. Каждый раз обновляйте version.
+POST {{base}}/applications/{{appId}}/actions/review/
+Content-Type: application/x-www-form-urlencoded
+Cookie: sessionid={{session}}; csrftoken={{csrfCookie}}
+
+csrfmiddlewaretoken={{csrfToken}}&version={{version}}
+
+### Одобрить, только назначенный сотрудник
+POST {{base}}/applications/{{appId}}/actions/decide/
+Content-Type: application/x-www-form-urlencoded
+Cookie: sessionid={{session}}; csrftoken={{csrfCookie}}
+
+csrfmiddlewaretoken={{csrfToken}}&version={{version}}&decision=approved&note=Сведения%20проверены,%20условия%20одобрены.
+
+### Принять условия, только владелец
+POST {{base}}/applications/{{appId}}/actions/accept/
+Content-Type: application/x-www-form-urlencoded
+Cookie: sessionid={{session}}; csrftoken={{csrfCookie}}
+
+csrfmiddlewaretoken={{csrfToken}}&version={{version}}&confirm=on
+
+### CSV график
+GET {{base}}/applications/{{appId}}/schedule/
+Cookie: sessionid={{session}}
+### Скоринговая карта: сессия сотрудника и CSRF из HTML-формы
+POST {{base}}/api/v1/scorecard/
+Content-Type: application/json
+Cookie: sessionid={{session}}; csrftoken={{csrfCookie}}
+X-CSRFToken: {{csrfToken}}
+
+< ../fixtures/scorecard/good_mature.json
+

@@ -1,0 +1,15 @@
+.git
+.venv
+.data
+.env
+__pycache__
+**/__pycache__
+staticfiles
+доки
+.agents
+.codex
+.aws
+docs
+tests
+.playwright-mcp
+*.png

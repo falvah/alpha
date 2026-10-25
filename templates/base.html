@@ -1,0 +1,28 @@
+{% load static %}<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#ef3124"><title>{% block title %}Кредитный кабинет{% endblock %} · Альфа Бизнес</title><link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml"><link rel="stylesheet" href="{% static 'css/app.css' %}"><script src="{% static 'js/app.js' %}" defer></script></head>
+<body><a class="skip-link" href="#main">К содержимому</a>
+{% if user.is_authenticated %}
+<div class="app-shell"><aside class="sidebar" id="sidebar">
+<a class="brand" href="{% url 'dashboard' %}"><span class="alpha-mark">А<span></span></span><span>Альфа<span class="brand-sub">Бизнес</span></span></a>
+<div class="workspace-label">{% if user.is_staff %}КАБИНЕТ СОТРУДНИКА{% else %}КРЕДИТНЫЙ КАБИНЕТ{% endif %}</div>
+<nav class="main-nav" aria-label="Основная навигация">
+{% if user.is_staff %}
+<a class="nav-link {% if nav == 'staff_queue' %}active{% endif %}" href="{% url 'staff_queue' %}">{% include 'credit/icon.html' with name='grid' %}Очередь заявок</a>
+<a class="nav-link {% if nav == 'scorecard_workspace' %}active{% endif %}" href="{% url 'scorecard_workspace' %}">{% include 'credit/icon.html' with name='chart' %}Скоринг</a>
+<a class="nav-link {% if nav == 'audit' %}active{% endif %}" href="{% url 'audit' %}">{% include 'credit/icon.html' with name='history' %}Журнал действий</a>
+{% else %}
+<a class="nav-link {% if nav == 'dashboard' %}active{% endif %}" href="{% url 'dashboard' %}">{% include 'credit/icon.html' with name='grid' %}Обзор</a>
+<a class="nav-link {% if nav == 'products' %}active{% endif %}" href="{% url 'products' %}">{% include 'credit/icon.html' with name='wallet' %}Подобрать кредит</a>
+<a class="nav-link {% if nav == 'applications' or nav == 'application_detail' or nav == 'application_edit' or nav == 'application_new' %}active{% endif %}" href="{% url 'applications' %}">{% include 'credit/icon.html' with name='document' %}Мои заявки</a>
+{% endif %}
+<a class="nav-link {% if nav == 'documents' %}active{% endif %}" href="{% url 'documents' %}">{% include 'credit/icon.html' with name='folder' %}Документы</a>
+{% if not user.is_staff %}<a class="nav-link {% if nav == 'notifications' %}active{% endif %}" href="{% url 'notifications' %}">{% include 'credit/icon.html' with name='bell' %}Уведомления{% if unread_count %}<span class="nav-count">{{ unread_count }}</span>{% endif %}</a>{% endif %}
+</nav>
+<div class="sidebar-bottom"><div class="help-card">{% include 'credit/icon.html' with name='spark' %}<strong>Всё понятно на каждом шаге</strong><p>Как подать заявку и что происходит после?</p><a href="{% url 'help' %}">Помощь с кредитом <span>↗</span></a></div>
+{% if sandbox_mode %}<div class="environment-indicator"><span></span>Тестовый контур</div>{% endif %}
+<div class="user-block"><span class="avatar">{{ user.first_name|first|default:'А' }}</span><div><strong>{{ user.get_full_name|default:user.username }}</strong><small>{% if user.is_staff %}Кредитный эксперт{% else %}Предприниматель{% endif %}</small></div><form action="{% url 'logout' %}" method="post">{% csrf_token %}<button class="icon-button" aria-label="Выйти" title="Выйти">{% include 'credit/icon.html' with name='logout' %}</button></form></div></div>
+</aside><div class="main-shell"><header class="topbar"><div class="topbar-start"><button class="icon-button mobile-menu" id="menu-toggle" aria-label="Открыть меню" aria-expanded="false" aria-controls="sidebar">{% include 'credit/icon.html' with name='menu' %}</button><span class="breadcrumb">Бизнес <span>/</span> {% if user.is_staff %}Кредитный конвейер{% else %}Финансирование{% endif %}</span></div><div class="topbar-end"><span class="date">{% now 'j E Y' %}</span>{% if not user.is_staff %}<a class="company-pill" href="{% url 'profile' %}">{% include 'credit/icon.html' with name='building' %}{{ user.company }}<span>⌄</span></a><a class="icon-button notification-button" href="{% url 'notifications' %}" aria-label="Уведомления{% if unread_count %}: {{ unread_count }} новых{% endif %}">{% include 'credit/icon.html' with name='bell' %}{% if unread_count %}<i></i>{% endif %}</a>{% endif %}</div></header>
+<main id="main" class="page-content">{% if messages %}<div class="messages" role="status">{% for message in messages %}<div class="message {{ message.tags }}">{% include 'credit/icon.html' with name='info' %}<span>{{ message }}</span><button class="icon-button dismiss-message" aria-label="Закрыть сообщение">×</button></div>{% endfor %}</div>{% endif %}{% block content %}{% endblock %}</main>
+<footer class="page-footer"><span>Умный кредитный кабинет · 2026</span><span>Кредитные заявки, документы и решения</span></footer></div></div>
+{% else %}<main id="main">{% block public_content %}{% endblock %}</main>{% endif %}
+</body></html>

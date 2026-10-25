@@ -1,0 +1,37 @@
+THIRD-PARTY NOTICES — Умный кредитный кабинет, 2026
+
+Runtime:
+- Python 3.14.8 — Python Software Foundation License. https://www.python.org/
+- Django 5.2.18 — BSD-3-Clause. https://www.djangoproject.com/
+- asgiref 3.12.1 — BSD-3-Clause. https://github.com/django/asgiref
+- sqlparse 0.6.0 — BSD-3-Clause. https://github.com/andialbrecht/sqlparse
+- WhiteNoise 6.12.0 — MIT. https://github.com/evansd/whitenoise
+- Gunicorn 26.2.0 — MIT. https://github.com/benoitc/gunicorn
+- tzdata 2025.2 (Windows) — Apache-2.0; IANA data public domain. https://github.com/python/tzdata
+- SQLite (bundled in CPython / base image) — public domain. https://www.sqlite.org/copyright.html
+- Docker official Python slim image — Python plus Debian components under their respective licenses. https://hub.docker.com/_/python
+
+Exact Python package versions: requirements.lock. Source licenses and notices remain in installed distributions; these summaries do not replace them.
+
+Visuals:
+- All SVG icons and decorative graphics were created for this project; no third-party icon pack or photo assets.
+- System fonts are used; no bundled commercial bank fonts or external font services.
+- Bank name, stylistic reference and red palette are used in a hackathon project. No claim of bank affiliation, production authorization, or ownership of bank trademarks is made.
+
+Source materials:
+- Three PDFs and ц.txt provided by the user in доки/. The challenge identifies Changellenge and АО «Альфа-Банк» as its creators. Rights remain with the respective holders.
+- docs/source/ contains text extracts of user-provided PDFs for requirements traceability.
+
+Synthetic data and simulated integrations:
+- Companies, names, identifiers, addresses, financial indicators and demo documents are synthetic; any coincidence is unintentional. No real customer dataset was used.
+- БКИ: local deterministic mock (Company.mock_overdue), not an external report.
+- ЕГРЮЛ / ЕГРИП: local deterministic mock (Company.mock_registry); no verification of legal existence, address or identifier checksums.
+- Credit products, rates, limits and rules-v1 are project-specific policies, not Alfa-Bank's current products or risk policy.
+- Signature/acceptance: checkbox + authenticated POST and timestamp, not a legal electronic signature.
+- Disbursement: a transactional status change and event, not a money transfer.
+- News: locally authored contextual help, not a live news feed.
+- ML, LLM, OCR: not used. No weights, training datasets, paid model APIs or hidden licenses.
+
+Development-only tools:
+- OpenAI Codex was used to assist implementation. It is not a runtime dependency.
+- Poppler pdftotext was used to read provided PDFs and verify synthetic PDF text. Poppler is not required at runtime. https://poppler.freedesktop.org/ (GPL family licenses).

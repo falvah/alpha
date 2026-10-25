@@ -1,0 +1,12 @@
+{% load credit_tags %}
+<section class="card"><p class="eyebrow">РЕЗУЛЬТАТ ПРОВЕРКИ · {{ application.scoring.card_version }}</p>
+{% if application.checks.needs_refresh %}<p class="message warning">Данные заявки изменились. Требуется новый расчёт скоринга перед одобрением.</p>{% endif %}
+<h2>{% if application.scoring.decision == 'decline' %}Финансирование заблокировано{% elif application.scoring.requires_manual_review %}Нужно ручное рассмотрение{% elif 'AMOUNT_REDUCED' in application.scoring.flags %}Нужно снизить сумму{% else %}Запрошенная сумма доступна{% endif %}</h2>
+{% for reason in application.scoring.reasons %}<p>{{ reason.title }}{% if user.is_staff %} <small class="muted">{{ reason.code }}</small>{% endif %}</p>{% endfor %}
+{% if application.scoring.approved_amount %}<div class="offer-terms"><div><span>Доступная сумма</span><strong>{{ application.scoring.approved_amount|rub }} ₽</strong></div><div><span>Расчётный лимит</span><strong>{{ application.scoring.limit_amount|rub }} ₽</strong></div><div><span>Платёж</span><strong>{{ application.scoring.monthly_payment|rub }} ₽</strong></div></div>{% endif %}
+<p class="small muted">Оценка рассчитана по данным, зафиксированным в заявке.</p>
+{% if user.is_staff %}<dl class="summary-list"><div><dt>Вероятность дефолта (PD, доля)</dt><dd>{{ application.scoring.pd }}</dd></div><div><dt>Покрытие данных (доля)</dt><dd>{{ application.scoring.data_coverage }}</dd></div><div><dt>Ветка / дата оценки</dt><dd>{{ application.scoring.branch|default:'не определена' }} / {{ application.checks.valuation_date }}</dd></div></dl>
+<p class="small muted">Положительные баллы повышают риск, отрицательные снижают. Жёсткие стопы имеют приоритет над баллами.</p>
+<details><summary>Факторы и значения</summary><div class="table-scroll"><table><thead><tr><th>Фактор</th><th>Значение</th><th>Диапазон</th><th>Баллы</th></tr></thead><tbody>{% for factor in application.scoring.factors %}<tr><td>{{ factor.title }}</td><td>{{ factor.value|default_if_none:'нет данных' }}</td><td>{{ factor.bin }}</td><td>{{ factor.points }}</td></tr>{% endfor %}</tbody></table></div></details>
+{% if application.scoring.flags %}<p class="small muted">Пометки: {{ application.scoring.flags|join:', ' }}</p>{% endif %}
+{% endif %}</section>

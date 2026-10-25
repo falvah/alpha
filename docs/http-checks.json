@@ -1,0 +1,626 @@
+[
+  {
+    "check": "health",
+    "passed": true,
+    "actual": 200,
+    "expected": 200
+  },
+  {
+    "check": "anonymous API",
+    "passed": true,
+    "actual": 401,
+    "expected": 401
+  },
+  {
+    "check": "reversed login",
+    "passed": true,
+    "actual": 400,
+    "expected": 400
+  },
+  {
+    "check": "SQL login",
+    "passed": true,
+    "actual": 400,
+    "expected": 400
+  },
+  {
+    "check": "client page /",
+    "passed": true,
+    "actual": 200,
+    "expected": 200
+  },
+  {
+    "check": "interface copy /",
+    "passed": true,
+    "actual": false,
+    "expected": false
+  },
+  {
+    "check": "client page /products/",
+    "passed": true,
+    "actual": 200,
+    "expected": 200
+  },
+  {
+    "check": "interface copy /products/",
+    "passed": true,
+    "actual": false,
+    "expected": false
+  },
+  {
+    "check": "client page /applications/",
+    "passed": true,
+    "actual": 200,
+    "expected": 200
+  },
+  {
+    "check": "interface copy /applications/",
+    "passed": true,
+    "actual": false,
+    "expected": false
+  },
+  {
+    "check": "client page /applications/new/",
+    "passed": true,
+    "actual": 200,
+    "expected": 200
+  },
+  {
+    "check": "interface copy /applications/new/",
+    "passed": true,
+    "actual": false,
+    "expected": false
+  },
+  {
+    "check": "client page /profile/",
+    "passed": true,
+    "actual": 200,
+    "expected": 200
+  },
+  {
+    "check": "interface copy /profile/",
+    "passed": true,
+    "actual": false,
+    "expected": false
+  },
+  {
+    "check": "client page /documents/",
+    "passed": true,
+    "actual": 200,
+    "expected": 200
+  },
+  {
+    "check": "interface copy /documents/",
+    "passed": true,
+    "actual": false,
+    "expected": false
+  },
+  {
+    "check": "client page /notifications/",
+    "passed": true,
+    "actual": 200,
+    "expected": 200
+  },
+  {
+    "check": "interface copy /notifications/",
+    "passed": true,
+    "actual": false,
+    "expected": false
+  },
+  {
+    "check": "client page /help/",
+    "passed": true,
+    "actual": 200,
+    "expected": 200
+  },
+  {
+    "check": "interface copy /help/",
+    "passed": true,
+    "actual": false,
+    "expected": false
+  },
+  {
+    "check": "staff page /bank/",
+    "passed": true,
+    "actual": 200,
+    "expected": 200
+  },
+  {
+    "check": "customer cannot open /bank/",
+    "passed": true,
+    "actual": 403,
+    "expected": 403
+  },
+  {
+    "check": "staff page /bank/audit/",
+    "passed": true,
+    "actual": 200,
+    "expected": 200
+  },
+  {
+    "check": "customer cannot open /bank/audit/",
+    "passed": true,
+    "actual": 403,
+    "expected": 403
+  },
+  {
+    "check": "staff page /bank/scorecard/",
+    "passed": true,
+    "actual": 200,
+    "expected": 200
+  },
+  {
+    "check": "customer cannot open /bank/scorecard/",
+    "passed": true,
+    "actual": 403,
+    "expected": 403
+  },
+  {
+    "check": "customer cannot submit scoring",
+    "passed": true,
+    "actual": 403,
+    "expected": 403
+  },
+  {
+    "check": "removed self-approval endpoint",
+    "passed": true,
+    "actual": 404,
+    "expected": 404
+  },
+  {
+    "check": "good_mature HTTP",
+    "passed": true,
+    "actual": 200,
+    "expected": 200
+  },
+  {
+    "check": "good_mature decision",
+    "passed": true,
+    "actual": "approve",
+    "expected": "approve"
+  },
+  {
+    "check": "good_mature amount",
+    "passed": true,
+    "actual": 1500000.0,
+    "expected": 1500000
+  },
+  {
+    "check": "reduced_amount HTTP",
+    "passed": true,
+    "actual": 200,
+    "expected": 200
+  },
+  {
+    "check": "reduced_amount decision",
+    "passed": true,
+    "actual": "approve",
+    "expected": "approve"
+  },
+  {
+    "check": "reduced_amount amount",
+    "passed": true,
+    "actual": 5500000.0,
+    "expected": 5500000
+  },
+  {
+    "check": "mass_address HTTP",
+    "passed": true,
+    "actual": 200,
+    "expected": 200
+  },
+  {
+    "check": "mass_address decision",
+    "passed": true,
+    "actual": "decline",
+    "expected": "decline"
+  },
+  {
+    "check": "mass_address amount",
+    "passed": true,
+    "actual": null,
+    "expected": null
+  },
+  {
+    "check": "invalid JSON null",
+    "passed": true,
+    "actual": 400,
+    "expected": 400
+  },
+  {
+    "check": "invalid JSON []",
+    "passed": true,
+    "actual": 400,
+    "expected": 400
+  },
+  {
+    "check": "invalid JSON {",
+    "passed": true,
+    "actual": 400,
+    "expected": 400
+  },
+  {
+    "check": "invalid JSON {\"x\":1,\"x\":2}",
+    "passed": true,
+    "actual": 400,
+    "expected": 400
+  },
+  {
+    "check": "invalid JSON {\"x\":NaN}",
+    "passed": true,
+    "actual": 400,
+    "expected": 400
+  },
+  {
+    "check": "invalid JSON [[[[[[[[[[[[[[[[[[[[0]]]]",
+    "passed": true,
+    "actual": 400,
+    "expected": 400
+  },
+  {
+    "check": "bad calculator amount -1",
+    "passed": true,
+    "actual": 400,
+    "expected": 400
+  },
+  {
+    "check": "bad calculator amount NaN",
+    "passed": true,
+    "actual": 400,
+    "expected": 400
+  },
+  {
+    "check": "bad calculator amount Infinity",
+    "passed": true,
+    "actual": 400,
+    "expected": 400
+  },
+  {
+    "check": "bad calculator amount 1e9999",
+    "passed": true,
+    "actual": 400,
+    "expected": 400
+  },
+  {
+    "check": "bad calculator amount <script>alert(1)</script>",
+    "passed": true,
+    "actual": 400,
+    "expected": 400
+  },
+  {
+    "check": "bad calculator amount 1500000.001",
+    "passed": true,
+    "actual": 400,
+    "expected": 400
+  },
+  {
+    "check": "bad calculator amount ' OR 1=1",
+    "passed": true,
+    "actual": 400,
+    "expected": 400
+  },
+  {
+    "check": "other customer cannot read application",
+    "passed": true,
+    "actual": 404,
+    "expected": 404
+  },
+  {
+    "check": "other customer cannot read API",
+    "passed": true,
+    "actual": 404,
+    "expected": 404
+  },
+  {
+    "check": "other customer cannot read schedule",
+    "passed": true,
+    "actual": 404,
+    "expected": 404
+  },
+  {
+    "check": "other customer cannot read PDF",
+    "passed": true,
+    "actual": 404,
+    "expected": 404
+  },
+  {
+    "check": "PDF is an attachment",
+    "passed": true,
+    "actual": "application/octet-stream",
+    "expected": "application/octet-stream"
+  },
+  {
+    "check": "PDF cannot be MIME-sniffed",
+    "passed": true,
+    "actual": "nosniff",
+    "expected": "nosniff"
+  },
+  {
+    "check": "other customer cannot accept",
+    "passed": true,
+    "actual": 404,
+    "expected": 404
+  },
+  {
+    "check": "other customer cannot cancel",
+    "passed": true,
+    "actual": 404,
+    "expected": 404
+  },
+  {
+    "check": "other customer cannot decide",
+    "passed": true,
+    "actual": 404,
+    "expected": 404
+  },
+  {
+    "check": "other customer cannot review",
+    "passed": true,
+    "actual": 404,
+    "expected": 404
+  },
+  {
+    "check": "CSRF enforced",
+    "passed": true,
+    "actual": 403,
+    "expected": 403
+  },
+  {
+    "check": "rejected acceptance returns to card",
+    "passed": true,
+    "actual": 302,
+    "expected": 302
+  },
+  {
+    "check": "rejected application remains blocked",
+    "passed": true,
+    "actual": "rejected",
+    "expected": "rejected"
+  },
+  {
+    "check": "parallel create HTTP",
+    "passed": true,
+    "actual": [
+      302,
+      302
+    ],
+    "expected": [
+      302,
+      302
+    ]
+  },
+  {
+    "check": "parallel create resolves to one draft",
+    "passed": true,
+    "actual": "f949a179-c02d-4ac1-bce6-84fcc565b577",
+    "expected": "f949a179-c02d-4ac1-bce6-84fcc565b577"
+  },
+  {
+    "check": "parallel acceptance HTTP",
+    "passed": true,
+    "actual": [
+      302,
+      302
+    ],
+    "expected": [
+      302,
+      302
+    ]
+  },
+  {
+    "check": "application completed",
+    "passed": true,
+    "actual": "funded",
+    "expected": "funded"
+  },
+  {
+    "check": "GET cannot log out",
+    "passed": true,
+    "actual": 405,
+    "expected": 405
+  },
+  {
+    "check": "CSP has no unsafe inline",
+    "passed": true,
+    "actual": false,
+    "expected": false
+  },
+  {
+    "check": "static asset /static/favicon.8a145166a3c2.svg",
+    "passed": true,
+    "actual": 200,
+    "expected": 200
+  },
+  {
+    "check": "static asset /static/css/app.e1b282f3ee17.css",
+    "passed": true,
+    "actual": 200,
+    "expected": 200
+  },
+  {
+    "check": "static asset /static/js/app.462f3aa94bff.js",
+    "passed": true,
+    "actual": 200,
+    "expected": 200
+  },
+  {
+    "check": "static asset /static/icons.db99deeb2b88.svg",
+    "passed": true,
+    "actual": 200,
+    "expected": 200
+  },
+  {
+    "check": "static asset /static/icons.db99deeb2b88.svg",
+    "passed": true,
+    "actual": 200,
+    "expected": 200
+  },
+  {
+    "check": "static asset /static/icons.db99deeb2b88.svg",
+    "passed": true,
+    "actual": 200,
+    "expected": 200
+  },
+  {
+    "check": "static asset /static/icons.db99deeb2b88.svg",
+    "passed": true,
+    "actual": 200,
+    "expected": 200
+  },
+  {
+    "check": "static asset /static/icons.db99deeb2b88.svg",
+    "passed": true,
+    "actual": 200,
+    "expected": 200
+  },
+  {
+    "check": "static asset /static/icons.db99deeb2b88.svg",
+    "passed": true,
+    "actual": 200,
+    "expected": 200
+  },
+  {
+    "check": "static asset /static/icons.db99deeb2b88.svg",
+    "passed": true,
+    "actual": 200,
+    "expected": 200
+  },
+  {
+    "check": "static asset /static/icons.db99deeb2b88.svg",
+    "passed": true,
+    "actual": 200,
+    "expected": 200
+  },
+  {
+    "check": "static asset /static/icons.db99deeb2b88.svg",
+    "passed": true,
+    "actual": 200,
+    "expected": 200
+  },
+  {
+    "check": "static asset /static/icons.db99deeb2b88.svg",
+    "passed": true,
+    "actual": 200,
+    "expected": 200
+  },
+  {
+    "check": "static asset /static/icons.db99deeb2b88.svg",
+    "passed": true,
+    "actual": 200,
+    "expected": 200
+  },
+  {
+    "check": "static asset /static/icons.db99deeb2b88.svg",
+    "passed": true,
+    "actual": 200,
+    "expected": 200
+  },
+  {
+    "check": "static asset /static/icons.db99deeb2b88.svg",
+    "passed": true,
+    "actual": 200,
+    "expected": 200
+  },
+  {
+    "check": "static asset /static/icons.db99deeb2b88.svg",
+    "passed": true,
+    "actual": 200,
+    "expected": 200
+  },
+  {
+    "check": "static asset /static/icons.db99deeb2b88.svg",
+    "passed": true,
+    "actual": 200,
+    "expected": 200
+  },
+  {
+    "check": "static asset /static/icons.db99deeb2b88.svg",
+    "passed": true,
+    "actual": 200,
+    "expected": 200
+  },
+  {
+    "check": "static asset /static/icons.db99deeb2b88.svg",
+    "passed": true,
+    "actual": 200,
+    "expected": 200
+  },
+  {
+    "check": "static asset /static/icons.db99deeb2b88.svg",
+    "passed": true,
+    "actual": 200,
+    "expected": 200
+  },
+  {
+    "check": "static asset /static/icons.db99deeb2b88.svg",
+    "passed": true,
+    "actual": 200,
+    "expected": 200
+  },
+  {
+    "check": "static asset /static/icons.db99deeb2b88.svg",
+    "passed": true,
+    "actual": 200,
+    "expected": 200
+  },
+  {
+    "check": "static asset /static/icons.db99deeb2b88.svg",
+    "passed": true,
+    "actual": 200,
+    "expected": 200
+  },
+  {
+    "check": "static asset /static/icons.db99deeb2b88.svg",
+    "passed": true,
+    "actual": 200,
+    "expected": 200
+  },
+  {
+    "check": "static asset /static/icons.db99deeb2b88.svg",
+    "passed": true,
+    "actual": 200,
+    "expected": 200
+  },
+  {
+    "check": "static asset /static/icons.db99deeb2b88.svg",
+    "passed": true,
+    "actual": 200,
+    "expected": 200
+  },
+  {
+    "check": "static asset /static/icons.db99deeb2b88.svg",
+    "passed": true,
+    "actual": 200,
+    "expected": 200
+  },
+  {
+    "check": "static asset /static/icons.db99deeb2b88.svg",
+    "passed": true,
+    "actual": 200,
+    "expected": 200
+  },
+  {
+    "check": "static asset /static/icons.db99deeb2b88.svg",
+    "passed": true,
+    "actual": 200,
+    "expected": 200
+  },
+  {
+    "check": "static asset /static/icons.db99deeb2b88.svg",
+    "passed": true,
+    "actual": 200,
+    "expected": 200
+  },
+  {
+    "check": "static asset /static/icons.db99deeb2b88.svg",
+    "passed": true,
+    "actual": 200,
+    "expected": 200
+  },
+  {
+    "check": "static asset /static/icons.db99deeb2b88.svg",
+    "passed": true,
+    "actual": 200,
+    "expected": 200
+  }
+]

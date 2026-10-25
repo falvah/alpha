@@ -1,0 +1,4 @@
+{% extends 'base.html' %}{% block title %}Данные скоринга{% endblock %}{% block content %}
+<a class="back-link" href="{% url 'application_detail' application.pk %}">← Заявка {{ application.reference }}</a>
+<section class="card"><h1>Проверки и данные документа</h1><p>Сумма, срок и ИНН должны совпадать с отправленной заявкой. Результат сохранится в истории и определит доступные условия финансирования.</p><p class="muted">Передайте показатели приложенного документа и результаты проверки компании.</p><form method="post">{% csrf_token %}<input type="hidden" name="version" value="{{ application.version }}">{% include 'credit/fields.html' %}<button class="button primary" type="submit">Рассчитать и применить решение</button></form></section>
+{% endblock %}

@@ -1,0 +1,82 @@
+{
+  "date": "2026-10-25",
+  "backend_tests": {
+    "passed": 107,
+    "total": 107
+  },
+  "javascript_tests": {
+    "passed": 5,
+    "total": 5
+  },
+  "live_http_checks": {
+    "passed": 102,
+    "total": 102
+  },
+  "http_requests": 104,
+  "http_statuses": {
+    "200": 64,
+    "401": 1,
+    "400": 15,
+    "302": 9,
+    "403": 5,
+    "404": 9,
+    "405": 1
+  },
+  "mutated_fields": 28,
+  "mutation_cases": 336,
+  "rendered_client_pages": 8,
+  "rendered_staff_pages": 3,
+  "deleted_files": 74,
+  "deleted_bytes": 679108,
+  "removed_dependencies": [
+    "packaging"
+  ],
+  "runtime_dependencies_linux": [
+    "Django",
+    "asgiref",
+    "sqlparse",
+    "whitenoise",
+    "gunicorn"
+  ],
+  "source_files": 74,
+  "source_lines": 3586,
+  "runtime_python_files": 27,
+  "runtime_functions": 109,
+  "longest_runtime_functions": [
+    {
+      "lines": 68,
+      "file": "credit/scorecard/engine.py",
+      "function": "score_payload"
+    },
+    {
+      "lines": 64,
+      "file": "credit/scorecard/models.py",
+      "function": "from_payload"
+    },
+    {
+      "lines": 58,
+      "file": "credit/scorecard/engine.py",
+      "function": "evaluate_factors"
+    },
+    {
+      "lines": 54,
+      "file": "credit/management/commands/seed_workspace.py",
+      "function": "handle"
+    },
+    {
+      "lines": 45,
+      "file": "credit/scorecard_workflow.py",
+      "function": "create_seed_application"
+    }
+  ],
+  "unused_import_candidates": [],
+  "scope_limits": [
+    "No browser visual/accessibility audit",
+    "No line-coverage measurement",
+    "No dependency CVE feed scan",
+    "No load or distributed deployment test",
+    "Docker Compose validated; image build not run"
+  ],
+  "generated_documents_updated": 7,
+  "other_documents_unchanged": 4
+}

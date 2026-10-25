@@ -1,0 +1,1682 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Умный кредитный кабинет",
+    "version": "1.2.0",
+    "description": "Сессионный API и серверные формы кредитного кабинета."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8000"
+    }
+  ],
+  "security": [
+    {
+      "sessionAuth": []
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "sessionAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "sessionid"
+      }
+    },
+    "schemas": {
+      "Application": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reference": {
+            "type": "string"
+          },
+          "product": {
+            "type": "string",
+            "enum": [
+              "working",
+              "growth",
+              "bridge"
+            ]
+          },
+          "amount": {
+            "type": "string"
+          },
+          "months": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "submitted",
+              "review",
+              "info",
+              "approved",
+              "counteroffer",
+              "rejected",
+              "funded",
+              "cancelled"
+            ]
+          },
+          "status_label": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          },
+          "payment": {
+            "type": "string"
+          },
+          "offer": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "amount": {
+                "type": "string"
+              },
+              "months": {
+                "type": "integer"
+              },
+              "rate": {
+                "type": "string"
+              }
+            }
+          },
+          "decision_note": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "scoring": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ScorecardDecision"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "ScorecardDecision": {
+        "type": "object",
+        "required": [
+          "decision",
+          "is_approved",
+          "requires_manual_review",
+          "requested_amount",
+          "approved_amount",
+          "reason_codes",
+          "factors",
+          "card_version"
+        ],
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": [
+              "approve",
+              "decline",
+              "review"
+            ]
+          },
+          "is_approved": {
+            "type": "boolean"
+          },
+          "requires_manual_review": {
+            "type": "boolean"
+          },
+          "branch": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "mature",
+              "young",
+              null
+            ]
+          },
+          "term_months": {
+            "type": "integer"
+          },
+          "currency": {
+            "const": "RUB"
+          },
+          "card_version": {
+            "type": "string"
+          },
+          "simulated": {
+            "const": true
+          },
+          "requested_amount": {
+            "type": "number"
+          },
+          "pd": {
+            "type": "number"
+          },
+          "logit": {
+            "type": "number"
+          },
+          "score_points": {
+            "type": "number"
+          },
+          "data_coverage": {
+            "type": "number"
+          },
+          "approved_amount": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "limit_amount": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "annual_rate": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "monthly_payment": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "reason_codes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "flags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "factors": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "reasons": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "top_risk_factors": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "top_mitigants": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        }
+      },
+      "ScorecardPayload": {
+        "type": "object",
+        "description": "Блоки заявка/application, обогащение/enrichment, документ/document, служебное/service. Формат и алиасы описаны в docs/scorecard.md.",
+        "properties": {
+          "заявка": {
+            "type": "object"
+          },
+          "application": {
+            "type": "object"
+          },
+          "обогащение": {
+            "type": "object"
+          },
+          "enrichment": {
+            "type": "object"
+          },
+          "документ": {
+            "type": "object"
+          },
+          "document": {
+            "type": "object"
+          },
+          "служебное": {
+            "type": "object"
+          },
+          "service": {
+            "type": "object"
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/health/": {
+      "get": {
+        "summary": "Проверить БД и сервис",
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "const": "ok"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/api/v1/products/": {
+      "get": {
+        "summary": "Каталог демопродуктов",
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "products": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "object"
+                      }
+                    },
+                    "simulated": {
+                      "const": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Нет сессии"
+          },
+          "404": {
+            "description": "Объект не найден или недоступен"
+          }
+        }
+      }
+    },
+    "/api/v1/calculator/": {
+      "get": {
+        "summary": "Аннуитетный расчёт",
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "payment": {
+                      "type": "string"
+                    },
+                    "total": {
+                      "type": "string"
+                    },
+                    "rate": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Нет сессии"
+          },
+          "404": {
+            "description": "Объект не найден или недоступен"
+          },
+          "400": {
+            "description": "Неверные параметры кредита"
+          }
+        },
+        "parameters": [
+          {
+            "name": "product",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "amount",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "months",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/applications/": {
+      "get": {
+        "summary": "Заявки текущего участника",
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Application"
+                      }
+                    },
+                    "page": {
+                      "type": "integer"
+                    },
+                    "pages": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Нет сессии"
+          },
+          "404": {
+            "description": "Объект не найден или недоступен"
+          }
+        },
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/applications/{id}/": {
+      "get": {
+        "summary": "Карточка заявки",
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Application"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Нет сессии"
+          },
+          "404": {
+            "description": "Объект не найден или недоступен"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ]
+      }
+    },
+    "/login/": {
+      "post": {
+        "summary": "Вход в кабинет",
+        "description": "CSRF-токен из HTML-формы + session cookie. Неверная версия/переход: redirect с flash-сообщением. Отсутствующий Content-Length: 411.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "csrfmiddlewaretoken": {
+                    "type": "string"
+                  },
+                  "username": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string",
+                    "format": "password"
+                  }
+                },
+                "required": [
+                  "csrfmiddlewaretoken",
+                  "username",
+                  "password"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "302": {
+            "description": "Переход к странице результата, следующему шагу или форме с сообщением",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибки полей, HTML-форма"
+          },
+          "403": {
+            "description": "Недостаточно прав или неверный CSRF"
+          },
+          "404": {
+            "description": "Заявка недоступна"
+          },
+          "411": {
+            "description": "Требуется Content-Length"
+          },
+          "413": {
+            "description": "Запрос более 6 МБ"
+          },
+          "429": {
+            "description": "Лимит попыток за 15 минут"
+          }
+        },
+        "security": []
+      }
+    },
+    "/logout/": {
+      "post": {
+        "summary": "Завершить сессию",
+        "description": "CSRF-токен из HTML-формы + session cookie. Неверная версия/переход: redirect с flash-сообщением. Отсутствующий Content-Length: 411.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "csrfmiddlewaretoken": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "csrfmiddlewaretoken"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "302": {
+            "description": "Переход к странице результата, следующему шагу или форме с сообщением",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибки полей, HTML-форма"
+          },
+          "403": {
+            "description": "Недостаточно прав или неверный CSRF"
+          },
+          "404": {
+            "description": "Заявка недоступна"
+          },
+          "411": {
+            "description": "Требуется Content-Length"
+          },
+          "413": {
+            "description": "Запрос более 6 МБ"
+          }
+        }
+      }
+    },
+    "/applications/new/": {
+      "post": {
+        "summary": "Создать черновик",
+        "description": "CSRF-токен из HTML-формы + session cookie. Неверная версия/переход: redirect с flash-сообщением. Отсутствующий Content-Length: 411.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "csrfmiddlewaretoken": {
+                    "type": "string"
+                  },
+                  "product": {
+                    "type": "string"
+                  },
+                  "amount": {
+                    "type": "string"
+                  },
+                  "months": {
+                    "type": "integer"
+                  },
+                  "purpose": {
+                    "type": "string",
+                    "maxLength": 500
+                  }
+                },
+                "required": [
+                  "csrfmiddlewaretoken",
+                  "product",
+                  "amount",
+                  "months",
+                  "purpose"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "302": {
+            "description": "Переход к странице результата, следующему шагу или форме с сообщением",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибки полей, HTML-форма"
+          },
+          "403": {
+            "description": "Недостаточно прав или неверный CSRF"
+          },
+          "404": {
+            "description": "Заявка недоступна"
+          },
+          "411": {
+            "description": "Требуется Content-Length"
+          },
+          "413": {
+            "description": "Запрос более 6 МБ"
+          }
+        }
+      }
+    },
+    "/applications/{id}/edit/1/": {
+      "post": {
+        "summary": "Сохранить параметры кредита",
+        "description": "CSRF-токен из HTML-формы + session cookie. Неверная версия/переход: redirect с flash-сообщением. Отсутствующий Content-Length: 411.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "csrfmiddlewaretoken": {
+                    "type": "string"
+                  },
+                  "version": {
+                    "type": "integer"
+                  },
+                  "product": {
+                    "type": "string"
+                  },
+                  "amount": {
+                    "type": "string"
+                  },
+                  "months": {
+                    "type": "integer"
+                  },
+                  "purpose": {
+                    "type": "string",
+                    "maxLength": 500
+                  }
+                },
+                "required": [
+                  "csrfmiddlewaretoken",
+                  "version",
+                  "product",
+                  "amount",
+                  "months",
+                  "purpose"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "302": {
+            "description": "Переход к странице результата, следующему шагу или форме с сообщением",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибки полей, HTML-форма"
+          },
+          "403": {
+            "description": "Недостаточно прав или неверный CSRF"
+          },
+          "404": {
+            "description": "Заявка недоступна"
+          },
+          "411": {
+            "description": "Требуется Content-Length"
+          },
+          "413": {
+            "description": "Запрос более 6 МБ"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ]
+      }
+    },
+    "/applications/{id}/edit/2/": {
+      "post": {
+        "summary": "Сохранить данные компании",
+        "description": "CSRF-токен из HTML-формы + session cookie. Неверная версия/переход: redirect с flash-сообщением. Отсутствующий Content-Length: 411.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "csrfmiddlewaretoken": {
+                    "type": "string"
+                  },
+                  "version": {
+                    "type": "integer"
+                  },
+                  "kind": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "representative": {
+                    "type": "string"
+                  },
+                  "address": {
+                    "type": "string"
+                  },
+                  "inn": {
+                    "type": "string"
+                  },
+                  "ogrn": {
+                    "type": "string"
+                  },
+                  "business_months": {
+                    "type": "string"
+                  },
+                  "revenue": {
+                    "type": "string"
+                  },
+                  "expenses": {
+                    "type": "string"
+                  },
+                  "existing_payments": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "csrfmiddlewaretoken",
+                  "version",
+                  "kind",
+                  "name",
+                  "representative",
+                  "address",
+                  "inn",
+                  "ogrn",
+                  "business_months",
+                  "revenue",
+                  "expenses",
+                  "existing_payments"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "302": {
+            "description": "Переход к странице результата, следующему шагу или форме с сообщением",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибки полей, HTML-форма"
+          },
+          "403": {
+            "description": "Недостаточно прав или неверный CSRF"
+          },
+          "404": {
+            "description": "Заявка недоступна"
+          },
+          "411": {
+            "description": "Требуется Content-Length"
+          },
+          "413": {
+            "description": "Запрос более 6 МБ"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ]
+      }
+    },
+    "/applications/{id}/edit/3/": {
+      "post": {
+        "summary": "Прикрепить PDF или отправить заявку",
+        "description": "CSRF-токен из HTML-формы + session cookie. Неверная версия/переход: redirect с flash-сообщением. Отсутствующий Content-Length: 411. Для upload обязательны kind и file; для submit обязательно consent=on. Submit также принимает application/x-www-form-urlencoded.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "csrfmiddlewaretoken": {
+                    "type": "string"
+                  },
+                  "version": {
+                    "type": "integer"
+                  },
+                  "action": {
+                    "type": "string",
+                    "enum": [
+                      "upload",
+                      "submit"
+                    ]
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "income",
+                      "guarantee",
+                      "collateral"
+                    ]
+                  },
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  },
+                  "consent": {
+                    "type": "string",
+                    "enum": [
+                      "on"
+                    ]
+                  }
+                },
+                "required": [
+                  "csrfmiddlewaretoken",
+                  "version",
+                  "action"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "302": {
+            "description": "Переход к странице результата, следующему шагу или форме с сообщением",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибки полей, HTML-форма"
+          },
+          "403": {
+            "description": "Недостаточно прав или неверный CSRF"
+          },
+          "404": {
+            "description": "Заявка недоступна"
+          },
+          "411": {
+            "description": "Требуется Content-Length"
+          },
+          "413": {
+            "description": "Запрос более 6 МБ"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ]
+      }
+    },
+    "/applications/{id}/actions/review/": {
+      "post": {
+        "summary": "Сотрудник берёт в работу",
+        "description": "CSRF-токен из HTML-формы + session cookie. Неверная версия/переход: redirect с flash-сообщением. Отсутствующий Content-Length: 411.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "csrfmiddlewaretoken": {
+                    "type": "string"
+                  },
+                  "version": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "csrfmiddlewaretoken",
+                  "version"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "302": {
+            "description": "Переход к странице результата, следующему шагу или форме с сообщением",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибки полей, HTML-форма"
+          },
+          "403": {
+            "description": "Недостаточно прав или неверный CSRF"
+          },
+          "404": {
+            "description": "Заявка недоступна"
+          },
+          "411": {
+            "description": "Требуется Content-Length"
+          },
+          "413": {
+            "description": "Запрос более 6 МБ"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ]
+      }
+    },
+    "/applications/{id}/actions/decide/": {
+      "post": {
+        "summary": "Решение ответственного сотрудника",
+        "description": "CSRF-токен из HTML-формы + session cookie. Неверная версия/переход: redirect с flash-сообщением. Отсутствующий Content-Length: 411.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "csrfmiddlewaretoken": {
+                    "type": "string"
+                  },
+                  "version": {
+                    "type": "integer"
+                  },
+                  "decision": {
+                    "type": "string",
+                    "enum": [
+                      "approved",
+                      "counteroffer",
+                      "info",
+                      "rejected"
+                    ]
+                  },
+                  "note": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 2000
+                  },
+                  "amount": {
+                    "type": "string"
+                  },
+                  "months": {
+                    "type": "integer"
+                  },
+                  "rate": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "csrfmiddlewaretoken",
+                  "version",
+                  "decision",
+                  "note"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "302": {
+            "description": "Переход к странице результата, следующему шагу или форме с сообщением",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибки полей, HTML-форма"
+          },
+          "403": {
+            "description": "Недостаточно прав или неверный CSRF"
+          },
+          "404": {
+            "description": "Заявка недоступна"
+          },
+          "411": {
+            "description": "Требуется Content-Length"
+          },
+          "413": {
+            "description": "Запрос более 6 МБ"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ]
+      }
+    },
+    "/applications/{id}/actions/accept/": {
+      "post": {
+        "summary": "Принять предложение и смоделировать выдачу",
+        "description": "CSRF-токен из HTML-формы + session cookie. Неверная версия/переход: redirect с flash-сообщением. Отсутствующий Content-Length: 411.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "csrfmiddlewaretoken": {
+                    "type": "string"
+                  },
+                  "version": {
+                    "type": "integer"
+                  },
+                  "confirm": {
+                    "type": "string",
+                    "enum": [
+                      "on"
+                    ]
+                  }
+                },
+                "required": [
+                  "csrfmiddlewaretoken",
+                  "version",
+                  "confirm"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "302": {
+            "description": "Переход к странице результата, следующему шагу или форме с сообщением",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибки полей, HTML-форма"
+          },
+          "403": {
+            "description": "Недостаточно прав или неверный CSRF"
+          },
+          "404": {
+            "description": "Заявка недоступна"
+          },
+          "411": {
+            "description": "Требуется Content-Length"
+          },
+          "413": {
+            "description": "Запрос более 6 МБ"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ]
+      }
+    },
+    "/applications/{id}/actions/cancel/": {
+      "post": {
+        "summary": "Отменить свою заявку",
+        "description": "CSRF-токен из HTML-формы + session cookie. Неверная версия/переход: redirect с flash-сообщением. Отсутствующий Content-Length: 411.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "csrfmiddlewaretoken": {
+                    "type": "string"
+                  },
+                  "version": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "csrfmiddlewaretoken",
+                  "version"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "302": {
+            "description": "Переход к странице результата, следующему шагу или форме с сообщением",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибки полей, HTML-форма"
+          },
+          "403": {
+            "description": "Недостаточно прав или неверный CSRF"
+          },
+          "404": {
+            "description": "Заявка недоступна"
+          },
+          "411": {
+            "description": "Требуется Content-Length"
+          },
+          "413": {
+            "description": "Запрос более 6 МБ"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ]
+      }
+    },
+    "/applications/{id}/documents/{doc_id}/delete/": {
+      "post": {
+        "summary": "Удалить PDF из черновика или уточнения",
+        "description": "CSRF-токен из HTML-формы + session cookie. Неверная версия/переход: redirect с flash-сообщением. Отсутствующий Content-Length: 411.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "csrfmiddlewaretoken": {
+                    "type": "string"
+                  },
+                  "version": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "csrfmiddlewaretoken",
+                  "version"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "302": {
+            "description": "Переход к странице результата, следующему шагу или форме с сообщением",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибки полей, HTML-форма"
+          },
+          "403": {
+            "description": "Недостаточно прав или неверный CSRF"
+          },
+          "404": {
+            "description": "Заявка недоступна"
+          },
+          "411": {
+            "description": "Требуется Content-Length"
+          },
+          "413": {
+            "description": "Запрос более 6 МБ"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "doc_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ]
+      }
+    },
+    "/notifications/": {
+      "post": {
+        "summary": "Отметить свои уведомления прочитанными",
+        "description": "CSRF-токен из HTML-формы + session cookie. Неверная версия/переход: redirect с flash-сообщением. Отсутствующий Content-Length: 411.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "csrfmiddlewaretoken": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "csrfmiddlewaretoken"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "302": {
+            "description": "Переход к странице результата, следующему шагу или форме с сообщением",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибки полей, HTML-форма"
+          },
+          "403": {
+            "description": "Недостаточно прав или неверный CSRF"
+          },
+          "404": {
+            "description": "Заявка недоступна"
+          },
+          "411": {
+            "description": "Требуется Content-Length"
+          },
+          "413": {
+            "description": "Запрос более 6 МБ"
+          }
+        }
+      }
+    },
+    "/profile/": {
+      "post": {
+        "summary": "Сохранить профиль компании",
+        "description": "CSRF-токен из HTML-формы + session cookie. Неверная версия/переход: redirect с flash-сообщением. Отсутствующий Content-Length: 411.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "csrfmiddlewaretoken": {
+                    "type": "string"
+                  },
+                  "kind": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "representative": {
+                    "type": "string"
+                  },
+                  "address": {
+                    "type": "string"
+                  },
+                  "inn": {
+                    "type": "string"
+                  },
+                  "ogrn": {
+                    "type": "string"
+                  },
+                  "business_months": {
+                    "type": "string"
+                  },
+                  "revenue": {
+                    "type": "string"
+                  },
+                  "expenses": {
+                    "type": "string"
+                  },
+                  "existing_payments": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "csrfmiddlewaretoken",
+                  "kind",
+                  "name",
+                  "representative",
+                  "address",
+                  "inn",
+                  "ogrn",
+                  "business_months",
+                  "revenue",
+                  "expenses",
+                  "existing_payments"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "302": {
+            "description": "Переход к странице результата, следующему шагу или форме с сообщением",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибки полей, HTML-форма"
+          },
+          "403": {
+            "description": "Недостаточно прав или неверный CSRF"
+          },
+          "404": {
+            "description": "Заявка недоступна"
+          },
+          "411": {
+            "description": "Требуется Content-Length"
+          },
+          "413": {
+            "description": "Запрос более 6 МБ"
+          }
+        }
+      }
+    },
+    "/documents/{doc_id}/download/": {
+      "get": {
+        "summary": "Скачать приватный PDF",
+        "responses": {
+          "200": {
+            "description": "Attachment",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Нет сессии"
+          },
+          "404": {
+            "description": "Объект не найден или недоступен"
+          }
+        },
+        "parameters": [
+          {
+            "name": "doc_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ]
+      }
+    },
+    "/applications/{id}/schedule/": {
+      "get": {
+        "summary": "Скачать график выплат",
+        "responses": {
+          "200": {
+            "description": "Attachment",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Нет сессии"
+          },
+          "404": {
+            "description": "Объект не найден или недоступен"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/scorecard/": {
+      "post": {
+        "summary": "Рассчитать скоринговую карту без изменения заявки",
+        "description": "Только сотрудник. JSON до 64 КБ; сессия и CSRF обязательны.",
+        "parameters": [
+          {
+            "name": "X-CSRFToken",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScorecardPayload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Результат демокарты",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScorecardDecision"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Некорректные данные"
+          },
+          "401": {
+            "description": "Нет сессии"
+          },
+          "403": {
+            "description": "Требуется сотрудник и CSRF"
+          }
+        }
+      }
+    },
+    "/applications/{id}/scorecard/": {
+      "get": {
+        "summary": "Применить JSON-карту к отправленной заявке — форма",
+        "responses": {
+          "200": {
+            "description": "HTML-форма"
+          },
+          "403": {
+            "description": "Нет прав"
+          }
+        }
+      },
+      "post": {
+        "summary": "Применить JSON-карту к отправленной заявке",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "payload": {
+                    "type": "string"
+                  },
+                  "version": {
+                    "type": "integer"
+                  },
+                  "csrfmiddlewaretoken": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "payload",
+                  "version",
+                  "csrfmiddlewaretoken"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "302": {
+            "description": "Переход к карточке заявки"
+          },
+          "400": {
+            "description": "Ошибки полей"
+          },
+          "403": {
+            "description": "Нет прав/CSRF"
+          },
+          "404": {
+            "description": "Заявка недоступна"
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ]
+    },
+    "/bank/scorecard/": {
+      "get": {
+        "summary": "Скоринговая форма сотрудника",
+        "responses": {
+          "200": {
+            "description": "HTML-форма"
+          },
+          "403": {
+            "description": "Требуется роль сотрудника"
+          }
+        }
+      },
+      "post": {
+        "summary": "Рассчитать скоринг без создания заявки",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "payload": {
+                    "type": "string"
+                  },
+                  "csrfmiddlewaretoken": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "payload",
+                  "csrfmiddlewaretoken"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "HTML-форма и результат"
+          },
+          "400": {
+            "description": "Ошибка данных"
+          },
+          "403": {
+            "description": "Нет прав или CSRF"
+          }
+        }
+      }
+    }
+  }
+}

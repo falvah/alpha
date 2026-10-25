@@ -1,0 +1,8 @@
+{% extends 'base.html' %}{% load credit_tags %}{% block title %}Скоринг{% endblock %}{% block content %}
+<div class="page-heading"><div><p class="eyebrow">ОЦЕНКА РИСКА</p><h1>Скоринговая карта</h1><p>Рассчитайте доступную сумму по данным заявки, финансовым показателям и результатам проверок.</p></div></div>
+{% if result %}<section class="card"><h2>{% if result.decision == 'decline' %}Финансирование недоступно{% elif result.decision == 'review' %}Требуется ручная проверка{% elif 'AMOUNT_REDUCED' in result.flags %}Необходимо снизить сумму{% else %}Проверки пройдены{% endif %}</h2>
+{% for reason in result.reasons %}<p>{{ reason.title }}</p>{% endfor %}
+{% if result.approved_amount %}<div class="offer-terms"><div><span>Сумма</span><strong>{{ result.approved_amount|rub }} ₽</strong></div><div><span>Ставка</span><strong>{{ result.annual_rate }}%</strong></div><div><span>Платёж</span><strong>{{ result.monthly_payment|rub }} ₽</strong></div></div>{% endif %}
+<p class="muted">Чтобы применить решение, откройте заявку в очереди и передайте данные в её скоринговую карту.</p></section>{% endif %}
+<section class="card"><h2>Входные данные</h2><form method="post">{% csrf_token %}{% include 'credit/fields.html' %}<button class="button primary" type="submit">Рассчитать решение</button></form></section>
+{% endblock %}
